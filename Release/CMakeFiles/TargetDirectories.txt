@@ -1,0 +1,3 @@
+/net/cremi/sfraile/Bureau/TER/TER_Ski/Release/CMakeFiles/gurobiSolverCWLP.dir
+/net/cremi/sfraile/Bureau/TER/TER_Ski/Release/CMakeFiles/edit_cache.dir
+/net/cremi/sfraile/Bureau/TER/TER_Ski/Release/CMakeFiles/rebuild_cache.dir
