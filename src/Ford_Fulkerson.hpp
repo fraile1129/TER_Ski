@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <cmath>
 
-#include "test.hpp"
+#include "TER_ski.hpp"
 
 
 void print_graph(graph& g);
