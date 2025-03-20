@@ -262,7 +262,7 @@ int main(int argc, char* argv[]) {
   cout << "Validity " << (check(g, s, t, val) ? "OK" : "WRONG") << endl;
   reset_graph(g);
   
-  if(not verbose) {
+  if(!verbose) {
     for(int s = 0; s < min((int)g.size(), 3); ++s) {
       for(int t = max(0, (int)g.size() - 3); t < (int)g.size(); ++t) {
 	if(s != t) {
