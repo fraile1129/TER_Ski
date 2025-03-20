@@ -27,8 +27,10 @@ int main(){
                 // ajout de contraintes
             } else {
                 reset_graph(graphe.GFord);
+                t++;
             }
         }
+        s++;
     }
 
 
