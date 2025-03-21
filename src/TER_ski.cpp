@@ -22,7 +22,7 @@ TER_ski::TER_ski(string filename)
             else if (temp == "LINKS")
             {
                 int node1, node2;
-                double capacity = 1.0;
+                double capacity = capacity;
                 while (inf >> node1 >> node2)
                 {
                     if (Graphe[node1].find(node2) != Graphe[node1].end())
@@ -64,3 +64,86 @@ void TER_ski::restreindre_graphe(const vector<vector<double>> &Xij)        // Mo
         }
         symmetrize(GFord);
     }
+
+vector<int> TER_ski::triTopologique() {
+    vector<int> degreEntrant(size, 0); // nb d'arc entrant pour chaque noeud
+    queue<int> file; // FIFO
+    vector<int> ordreTopologique;
+
+    // calcul du degre entrant pour chaque noeud
+    for (int u = 0; u < size; ++u) {
+        for (const auto& [v, arc] : graph[u]) {
+            degreEntrant[v]++;
+        }
+    }
+
+    // si degreEntrant[u] == 0, alors u est ajouté à la file
+    for (int i = 0; i < size; ++i) {
+        if (degreEntrant[i] == 0) {
+            file.push(i);
+        }
+    }
+    /*
+        tant que la file n'est pas vide
+        on retire un noeud u de la file
+        on ajoute u à l'ordre topologique
+        on retire u de la liste des successeurs de chaque noeud v
+        si degreEntrant[v] == 0, alors on ajoute v à la file
+        si l'ordre topologique ne contient pas tous les noeuds, alors il y a un cycle
+    */
+    while (!file.empty()) {
+        int u = file.front();
+        file.pop();
+        ordreTopologique.push_back(u);
+
+        for (const auto& [v, arc] : graph[u]) {
+            if (--degreEntrant[v] == 0) {
+                file.push(v);
+            }
+        }
+    }
+    if (ordreTopologique.size() != size) {
+        cerr << "Graphe contient un cycle." << endl;
+        return {};
+    }
+
+    return ordreTopologique;
+}
+
+
+
+int main(int argc, char *argv[])
+{
+    if (argc < 2)
+    {
+        cerr << "Specifier un fichier en argument." << endl;
+        return 1;
+    }
+
+    string filename = argv[1];
+    filename = "../data/" + filename;
+
+    TER_ski ter(filename);
+
+    if (ter.size == -1)
+    {
+        cerr << "Erreur : impossible d'ouvrir le fichier " << filename << endl;
+        return 1;
+    }
+
+    vector<int> topoOrder = ter.triTopologique();
+
+    if (topoOrder.empty())
+    {
+        return 1;
+    }
+
+    cout << "Tri topologique : ";
+    for (int i = 0; i < ter.size; ++i)
+    {
+        cout << topoOrder[i] << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
