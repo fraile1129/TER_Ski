@@ -8,10 +8,10 @@
 #include <string>
 #include <unordered_map>
 #include <iostream>
-#include <utility> 
+#include <utility>
+#include <sstream>
 #include "gurobi_c++.h" 
 
-#include "Ford_Fulkerson.hpp"
 
 using namespace std;
 
@@ -24,6 +24,9 @@ struct Arc
 
 typedef vector<unordered_map<int, Arc>> graph;
 
+#include "Ford_Fulkerson.hpp"
+
+
 class TER_ski
 {
 public:
@@ -31,10 +34,11 @@ public:
     graph Graphe;
     vector<pair<int, int>> doublons;
     graph GFord;
+    vector<int> ordreTopologique;
 
     TER_ski(string filename);
 
-    vector<int> triTopo();
+    void triTopologique();
 
     void restreindre_graphe(const vector<vector<double>> &Xij);        // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
 

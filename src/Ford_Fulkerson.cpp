@@ -1,5 +1,4 @@
 #include "Ford_Fulkerson.hpp"
-#include "limits" 
 
 // Set to true for debugging messages
 bool verbose = true;
@@ -10,8 +9,8 @@ void print_graph(graph& g) {
   int i = 0;
   for (auto &liste_de_voisins: g) {
     cout << "Voisins de " << i << ": ";
-    for(auto& [neighbor, arc]: liste_de_voisins){
-      cout << "(" << neighbor << ": " << arc.capacity << ", " << arc.flow << ") ";
+    for(auto& pair: liste_de_voisins){
+      cout << "(" << pair.first << ": " << pair.second.capacity << ", " << pair.second.flow << ") ";
     }
     cout << endl;
     ++i;
@@ -21,9 +20,9 @@ void print_graph(graph& g) {
 void reset_graph(graph& g) 
     {
         for (auto &liste_de_voisins: g) {
-            for(auto& [neighbor, arc]: liste_de_voisins){
-                arc.flow = 0;
-                arc.residual = arc.capacity;
+            for(auto& pair: liste_de_voisins){
+              pair.second.flow = 0;
+              pair.second.residual = pair.second.capacity;
             }
         }
     }
@@ -32,9 +31,9 @@ void reset_graph(graph& g)
 void symmetrize(graph& g)
     {
         for (int i=0; i<int(g.size()); i++) {
-            for(auto& [neighbor, arc]: g[i]) {
+            for(auto& pair: g[i]) {
                 Arc a = {0.,0.,0.};
-                g[neighbor][i] = a;
+                g[pair.first][i] = a;
                 /*if (g[neighbor].count(i) == 0) {
                     //add_arc(g, neighbor, i, 0);
                 }*/
@@ -63,13 +62,13 @@ vector<int> search(graph &g, int source, int sink) {
       cerr << " " << visited << ": ";
     }
 
-    for (auto& [neighbor, arc]: g[visited]) {
-      if((arc.residual > 1e-9) && (predecessors[neighbor] == -1)) {
-	predecessors[neighbor] = visited;
-	to_visit.push(neighbor);
+    for (auto& pair: g[visited]) {
+      if((pair.second.residual > 1e-9) && (predecessors[pair.first] == -1)) {
+	predecessors[pair.first] = visited;
+	to_visit.push(pair.first);
 
 	if (verbose) {
-	  cerr << neighbor << " ";
+	  cerr << pair.first << " ";
 	}
 
       }
@@ -156,12 +155,12 @@ bool check(graph &g, int source, int sink, double flow) {
   int u = 0;
   for(auto &neighbors: g) {
     double excess = 0;
-    for(auto &[v, arc]: neighbors) {
-      excess += arc.flow;
-      Arc &symmetric = g[v].at(u);
+    for(auto &pair: neighbors) {
+      excess += pair.second.flow;
+      Arc &symmetric = g[pair.first].at(u);
       excess -= symmetric.flow;
-      if( (fabs(symmetric.flow) > 1e-9) && (fabs(arc.flow) > 1e-9)) {
-	cerr << "Arcs " << u << " <-> " << v << " both have non-zero flow: " << arc.flow << " " << symmetric.flow << endl;
+      if( (fabs(symmetric.flow) > 1e-9) && (fabs(pair.second.flow) > 1e-9)) {
+	cerr << "Arcs " << u << " <-> " << pair.first << " both have non-zero flow: " << pair.second.flow << " " << symmetric.flow << endl;
 	return false;
       }
     }

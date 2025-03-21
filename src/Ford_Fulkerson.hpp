@@ -6,6 +6,7 @@
 #include <queue>
 #include <unordered_map>
 #include <cmath>
+#include <limits>
 
 #include "TER_ski.hpp"
 

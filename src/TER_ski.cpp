@@ -1,31 +1,35 @@
 #include "TER_ski.hpp"
 #include "Ford_Fulkerson.hpp"
 
-typedef vector<unordered_map<int, Arc>> graph;
+//typedef vector<unordered_map<int, Arc>> graph;
 
 TER_ski::TER_ski(string filename)
     {
+        Graphe.resize(0);
         ifstream inf(filename);
         if (!inf)
         {
+            cerr << "Erreur : Impossible d'ouvrir le fichier " << filename << endl;
             size = -1;
             return;
         }
 
-        string temp;
+        string temp = "a";
         int numNodes = -1;
+        cout << "test" << endl;
         while (inf >> temp)
         {
             if (temp == "NODES")
             {
                 inf >> numNodes;
+                cout << numNodes << endl;
                 Graphe.resize(numNodes);
             }
             else if (temp == "LINKS")
             {
                 int node1, node2;
-                double capacity = 1.0;
-                while (inf >> node1 >> node2)
+                double capacity;
+                while (inf >> node1 >> node2 >> capacity)
                 {
                     if (Graphe[node1].find(node2) != Graphe[node1].end())
                     {
@@ -50,10 +54,10 @@ TER_ski::TER_ski(string filename)
 
 class SeparationCallback: public GRBCallback {
         public:
-            GRBVar** & _x;
+          vector<vector<GRBVar>> & _x;
             int _size; // Nombre de sommets
             TER_ski* _graphe;
-            SeparationCallback(GRBVar** & x, int size,TER_ski *graphe) : _x(x), _size(size), _graphe(graphe) { }
+            SeparationCallback(vector<vector<GRBVar>> & x, int size,TER_ski *graphe) : _x(x), _size(size), _graphe(graphe) { }
         protected:
           void callback () {
             try {
@@ -70,19 +74,23 @@ class SeparationCallback: public GRBCallback {
                             xij[i][j] = getSolution(_x[i][j]);
                         }
                     }
+                    print_graph(_graphe->GFord);
                   _graphe->restreindre_graphe(xij);
+                  print_graph(_graphe->GFord);
                   
                 while (s<_size-1 && !fin){
                     int t = s+1;
                     while (t<_size && !fin){
-                        double flow = fordfulkerson(_graphe->GFord, ordreTopologique[s], ordreTopologique[t]);
+                      cout << "Calcul flot entre " << s << " et " << t << " :" << endl; 
+                        double flow = fordfulkerson(_graphe->GFord, _graphe->ordreTopologique[s], _graphe->ordreTopologique[t]);
+                        cout << "Flot : " << flow << endl;
                         if (flow > 1.5){
                             fin = true;
 
                             for (int i=0; i<_size; i++){
-                                for (auto &[voisin, arc] : GFord[i+_size]){
-                                    if (arc.flow > 0.5){
-                                        somme += _x[i][voisin];
+                                for (auto &pair : _graphe->GFord[i+_size]){
+                                    if (pair.second.flow > 0.5){
+                                        somme += _x[i][pair.first];
                                     }
                                 }
                             }
@@ -116,18 +124,21 @@ void TER_ski::restreindre_graphe(const vector<vector<double>> &Xij)        // Mo
     for (int i=0; i<size; i++){
         Arc a = {capacity, 0., capacity};
         GFord[i][i+size] = a;
-        for (auto &[s, arc] : Graphe[i]){
-            if (Xij[i][s] < 0.5){
-                GFord[size + i][s] = arc;
+        cout << GFord[i][i+size].capacity << endl;
+        for (auto &pair : Graphe[i]){
+            if (Xij[i][pair.first] < 0.5){
+              cout << "ajout arc " << i << " " << pair.first << endl;
+                GFord[size + i][pair.first] = pair.second;
             }
         }
     }
-    symmetrize(GFord);
+    print_graph(GFord);
+  symmetrize(GFord);
 }
 
 
 void TER_ski::Resolution(){
-    GRBVar** x;
+    vector<vector<GRBVar>> x(size);
     try{
       // --- Creation of the Gurobi environment ---
       cout<<"--> Creating the Gurobi environment"<<endl;
@@ -139,15 +150,19 @@ void TER_ski::Resolution(){
       cout<<"--> Creating the Gurobi model"<<endl;
       GRBModel model = GRBModel(env);
       model.set(GRB_IntParam_LazyConstraints , 1); // MANDATORY FOR LAZY CONSTRAINTS!
+
+
       // --- Creation of the variables ---
       cout<<"--> Creating the variables"<<endl;
-      x = new GRBVar*[size];
+
       for(size_t i=0;i<size;++i){
-        x[i] = new GRBVar[size];
+        x[i].resize(size);
         for(size_t j=0;j<size;++j){
-          stringstream ss;
-          ss << "x(" << i<< ","<<j<<")" << endl;
-          x[i][j]= model.addVar(0.0, 1.0, 0.0, GRB_BINARY, ss.str());
+            stringstream ss;
+            ss << "x(" << i<< ","<<j<<")" << endl;
+            x[i][j]= model.addVar(0.0, 1.0, 0.0, GRB_BINARY, ss.str());
+          
+          
         }
       }
   
@@ -157,7 +172,7 @@ void TER_ski::Resolution(){
       GRBLinExpr obj = 0;
       for(size_t i=0;i<size;++i){
         for(size_t j=0;j<size;++j){
-          if(i!=j){
+          if(Graphe[i].count(j)){
             obj+=x[i][j];
           }
         }
@@ -213,10 +228,7 @@ void TER_ski::Resolution(){
     } catch(...) {
       cout << "Exception during optimization" << endl;
     }
-    for(size_t j=0;j<size;++j){
-      delete[] x[j];
-    }
-    delete[] x;
+    
 }  
 
 
@@ -227,8 +239,8 @@ void TER_ski::triTopologique() {
 
     // calcul du degre entrant pour chaque noeud
     for (int u = 0; u < size; ++u) {
-        for (const auto& [v, arc] : Graphe[u]) {
-            degreEntrant[v]++;
+        for (const auto& pair : Graphe[u]) {
+            degreEntrant[pair.first]++;
         }
     }
 
@@ -251,15 +263,16 @@ void TER_ski::triTopologique() {
         file.pop();
         ordreTopologique.push_back(u);
 
-        for (const auto& [v, arc] : Graphe[u]) {
-            if (--degreEntrant[v] == 0) {
-                file.push(v);
+        for (const auto& pair : Graphe[u]) {
+            if (--degreEntrant[pair.first] == 0) {
+                file.push(pair.first);
             }
         }
     }
     if (ordreTopologique.size() != size) {
+      cout << ordreTopologique.size();
         cerr << "Graphe contient un cycle." << endl;
-        return {};
+        abort();
     }
 
     //return ordreTopologique;

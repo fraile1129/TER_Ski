@@ -4,38 +4,30 @@
 int main(){
 
 
-    string filename = "test.txt";
+    string filename = "data/test.txt";
     TER_ski graphe(filename);
 
-    vector<int> som_tri = graphe.triTopo();
-
-
-
-
-
-
-    vector<vector<double>> xij;
-    graphe.restreindre_graphe(xij);
-    graphe.GFord=graphe.Graphe;
-    int s = 0;
-    bool fin = false;
-    while (s<graphe.size-1 && !fin){
-        int t = s+1;
-        while (t<graphe.size && !fin){
-            double flow = fordfulkerson(graphe.GFord, s, t);
-            if (flow > 1.5){
-                fin = true;
-                // ajout de contraintes
-            } else {
-                reset_graph(graphe.GFord);
-                t++;
-            }
+    /*int n = graphe.size;
+    for (int i=0; i<n; i++){
+        cout << "Voisins de " << i << " :" << endl;
+        for (auto &pair : graphe.Graphe[i]){
+            cout << "   " << pair.first << " : " << pair.second.capacity << endl;
         }
-        s++;
+    }*/
+    print_graph(graphe.Graphe);
+    symmetrize(graphe.Graphe);
+    print_graph(graphe.Graphe);
+
+
+    /*cout << "Ordre Topologique : " << endl;
+    for (int i=0; i<graphe.size; i++){
+        cout << graphe.ordreTopologique[i] << "; ";
     }
+    cout << endl;
 
+    graphe.Resolution();
 
-
+*/
 
 
 
