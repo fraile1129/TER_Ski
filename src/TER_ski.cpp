@@ -74,7 +74,6 @@ class SeparationCallback: public GRBCallback {
                             xij[i][j] = getSolution(_x[i][j]);
                         }
                     }
-                    print_graph(_graphe->GFord);
                   _graphe->restreindre_graphe(xij);
                   print_graph(_graphe->GFord);
                   
@@ -82,7 +81,7 @@ class SeparationCallback: public GRBCallback {
                     int t = s+1;
                     while (t<_size && !fin){
                       cout << "Calcul flot entre " << s << " et " << t << " :" << endl; 
-                        double flow = fordfulkerson(_graphe->GFord, _graphe->ordreTopologique[s], _graphe->ordreTopologique[t]);
+                        double flow = fordfulkerson(_graphe->GFord, _graphe->ordreTopologique[s] + _size, _graphe->ordreTopologique[t]);
                         cout << "Flot : " << flow << endl;
                         if (flow > 1.5){
                             fin = true;
@@ -132,7 +131,6 @@ void TER_ski::restreindre_graphe(const vector<vector<double>> &Xij)        // Mo
             }
         }
     }
-    print_graph(GFord);
   symmetrize(GFord);
 }
 

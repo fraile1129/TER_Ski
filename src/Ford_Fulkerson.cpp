@@ -30,13 +30,12 @@ void reset_graph(graph& g)
 
 void symmetrize(graph& g)
     {
+      Arc a = {0.,0.,0.};
         for (int i=0; i<int(g.size()); i++) {
             for(auto& pair: g[i]) {
-                Arc a = {0.,0.,0.};
-                g[pair.first][i] = a;
-                /*if (g[neighbor].count(i) == 0) {
-                    //add_arc(g, neighbor, i, 0);
-                }*/
+                if (g[i][pair.first].capacity > 0.1){
+                  g[pair.first][i] = a;
+                }
             }
         }
     }
