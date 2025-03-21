@@ -11,6 +11,8 @@
 #include <utility> 
 #include "gurobi_c++.h" 
 
+#include "Ford_Fulkerson.hpp"
+
 using namespace std;
 
 struct Arc
