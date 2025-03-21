@@ -44,29 +44,50 @@ TER_ski::TER_ski(string filename)
         }
         size = numNodes;
         inf.close();
+        triTopologique();
     }
 
 
-    class SeparationCallback: public GRBCallback {
+class SeparationCallback: public GRBCallback {
         public:
             GRBVar** & _x;
-            int _size; // Largeur de la matrice d'adjacence
+            int _size; // Nombre de sommets
             TER_ski* _graphe;
             SeparationCallback(GRBVar** & x, int size,TER_ski *graphe) : _x(x), _size(size), _graphe(graphe) { }
         protected:
           void callback () {
             try {
-              if ( where == GRB_CB_MIPSOL ){
+              if ( where == GRB_CB_MIPSOL ){        // Solution entière => Lazy Cuts
                 int s = 0;
                 bool fin = false;
                 GRBLinExpr somme = 0;
-                while (s<_graphe->size-1 && !fin){
+
+                  // On récupère la solution
+                  vector<vector<double>> xij(_size);
+                    for (int i=0 ; i<_size ; i++) {
+                        xij[i].resize(_size);
+                        for (int j=0 ; j<_size ; j++) {
+                            xij[i][j] = getSolution(_x[i][j]);
+                        }
+                    }
+                  _graphe->restreindre_graphe(xij);
+                  
+                while (s<_size-1 && !fin){
                     int t = s+1;
-                    while (t<_graphe->size && !fin){
-                        double flow = fordfulkerson(_graphe->GFord, s, t);
+                    while (t<_size && !fin){
+                        double flow = fordfulkerson(_graphe->GFord, ordreTopologique[s], ordreTopologique[t]);
                         if (flow > 1.5){
                             fin = true;
-                            // ajout de contraintes
+
+                            for (int i=0; i<_size; i++){
+                                for (auto &[voisin, arc] : GFord[i+_size]){
+                                    if (arc.flow > 0.5){
+                                        somme += _x[i][voisin];
+                                    }
+                                }
+                            }
+
+                            addLazy(somme>=flow-1);
                             
                         } else {
                             reset_graph(_graphe->GFord);
@@ -83,6 +104,8 @@ TER_ski::TER_ski(string filename)
             } catch (...) { cout << "Error during callback" << endl; }
           }
       };
+
+
 void TER_ski::restreindre_graphe(const vector<vector<double>> &Xij)        // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
 {
     int size = Graphe.size();
@@ -101,6 +124,8 @@ void TER_ski::restreindre_graphe(const vector<vector<double>> &Xij)        // Mo
     }
     symmetrize(GFord);
 }
+
+
 void TER_ski::Resolution(){
     GRBVar** x;
     try{
@@ -193,14 +218,16 @@ void TER_ski::Resolution(){
     }
     delete[] x;
 }  
-vector<int> TER_ski::triTopologique() {
+
+
+void TER_ski::triTopologique() {
     vector<int> degreEntrant(size, 0); // nb d'arc entrant pour chaque noeud
     queue<int> file; // FIFO
-    vector<int> ordreTopologique;
+    //vector<int> ordreTopologique;
 
     // calcul du degre entrant pour chaque noeud
     for (int u = 0; u < size; ++u) {
-        for (const auto& [v, arc] : graph[u]) {
+        for (const auto& [v, arc] : Graphe[u]) {
             degreEntrant[v]++;
         }
     }
@@ -224,7 +251,7 @@ vector<int> TER_ski::triTopologique() {
         file.pop();
         ordreTopologique.push_back(u);
 
-        for (const auto& [v, arc] : graph[u]) {
+        for (const auto& [v, arc] : Graphe[u]) {
             if (--degreEntrant[v] == 0) {
                 file.push(v);
             }
@@ -235,5 +262,5 @@ vector<int> TER_ski::triTopologique() {
         return {};
     }
 
-    return ordreTopologique;
+    //return ordreTopologique;
 }
