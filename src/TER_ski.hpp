@@ -18,7 +18,7 @@ struct Arc
 
 typedef vector<unordered_map<int, Arc>> graph;
 
-#include "ff.hpp"
+#include "ff.hpp" // c quoi ce include?
 
 class TER_ski
 {
@@ -30,7 +30,7 @@ public:
 
     TER_ski(string filename);
 
-    vector<int> triTopo();
+    vector<int> triTopologique();
 
     void restreindre_graphe(const vector<vector<double>> &Xij);        // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
 
