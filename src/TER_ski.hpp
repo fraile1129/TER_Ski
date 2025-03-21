@@ -1,3 +1,6 @@
+#ifndef TER_SKI_HPP
+#define TER_SKI_HPP 
+
 #pragma once
 
 #include <fstream>
@@ -5,20 +8,19 @@
 #include <string>
 #include <unordered_map>
 #include <iostream>
-#include <utility>
+#include <utility> 
+#include "gurobi_c++.h" 
 
 using namespace std;
 
 struct Arc
 {
-    double capacity;
+    double capacity=1;
     double flow;
     double residual;
 };
 
 typedef vector<unordered_map<int, Arc>> graph;
-
-#include "ff.hpp" // c quoi ce include?
 
 class TER_ski
 {
@@ -30,12 +32,13 @@ public:
 
     TER_ski(string filename);
 
-    vector<int> triTopologique();
+    vector<int> triTopo();
 
     void restreindre_graphe(const vector<vector<double>> &Xij);        // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
 
-    double Resolution();
+    void Resolution();
 
 
     
 };
+#endif 
