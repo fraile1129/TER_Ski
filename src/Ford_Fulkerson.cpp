@@ -132,7 +132,7 @@ double fordfulkerson(graph &g, int source, int sink) {
     if (verbose) {
       cout << "Done computing preds, result= ";
       for(auto &p: preds) {
-	cout << p << " ";
+	      cout << p << " ";
       }
       cout << endl;
     }
@@ -159,24 +159,23 @@ bool check(graph &g, int source, int sink, double flow) {
       Arc &symmetric = g[pair.first].at(u);
       excess -= symmetric.flow;
       if( (fabs(symmetric.flow) > 1e-9) && (fabs(pair.second.flow) > 1e-9)) {
-	cerr << "Arcs " << u << " <-> " << pair.first << " both have non-zero flow: " << pair.second.flow << " " << symmetric.flow << endl;
-	return false;
+	      cerr << "Arcs " << u << " <-> " << pair.first << " both have non-zero flow: " << pair.second.flow << " " << symmetric.flow << endl;
+	      return false;
       }
     }
     if(u == source){
       if (fabs(excess - flow) > 1e-9) {
-	cerr << "Flow around source " << u << " is wrong " << excess << " " << flow << endl;
-	return false;
+        cerr << "Flow around source " << u << " is wrong " << excess << " " << flow << endl;
+        return false;
       }
     } else if (u == sink) {
       if (fabs(excess + flow) > 1e-9) {
-	cerr << "Flow around sink " << u << " is wrong " << excess << " " << flow << endl;
-	return false;
+        cerr << "Flow around sink " << u << " is wrong " << excess << " " << flow << endl;
+        return false;
       }
     } else if (fabs(excess) > 1e-9) {
-      cerr << "Flow around node " << u << " is wrong " << excess << " " << flow << endl;
-
-      return false;
+        cerr << "Flow around node " << u << " is wrong " << excess << " " << flow << endl;
+        return false;
     }
     ++u;
   }

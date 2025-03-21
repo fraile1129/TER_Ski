@@ -40,7 +40,8 @@ public:
 
     void triTopologique();
 
-    void restreindre_graphe(const vector<vector<double>> &Xij);        // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
+    // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
+    void restreindre_graphe(const vector<vector<double>> &Xij);
 
     void Resolution();
 

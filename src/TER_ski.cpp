@@ -153,12 +153,12 @@ void TER_ski::Resolution(){
       // --- Creation of the variables ---
       cout<<"--> Creating the variables"<<endl;
 
-      for(size_t i=0;i<size;++i){
+      for(size_t i = 0; i < size; ++i){
         x[i].resize(size);
-        for(size_t j=0;j<size;++j){
+        for(size_t j = 0; j < size; ++j){
             stringstream ss;
-            ss << "x(" << i<< ","<<j<<")" << endl;
-            x[i][j]= model.addVar(0.0, 1.0, 0.0, GRB_BINARY, ss.str());
+            ss << "x(" << i << "," << j << ")" << endl;
+            x[i][j] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, ss.str());
           
           
         }
@@ -166,12 +166,12 @@ void TER_ski::Resolution(){
   
   
       // --- Creation of the objective function ---
-      cout<<"--> Creating the objective function"<<endl;
+      cout << "--> Creating the objective function" << endl;
       GRBLinExpr obj = 0;
-      for(size_t i=0;i<size;++i){
-        for(size_t j=0;j<size;++j){
+      for(size_t i = 0; i < size; ++i){
+        for(size_t j = 0; j < size; ++j){
           if(Graphe[i].count(j)){
-            obj+=x[i][j];
+            obj += x[i][j];
           }
         }
       }
@@ -181,13 +181,13 @@ void TER_ski::Resolution(){
       model.setCallback(myCallback); // adding the callback to the model
       // Optimize model
       // --- Solver configuration ---
-      cout<<"--> Configuring the solver"<<endl;
+      cout << "--> Configuring the solver" << endl;
       model.set(GRB_DoubleParam_TimeLimit, 600.0); //< sets the time limit (in seconds)
-      model.set(GRB_IntParam_Threads,1); //< limits the solver to single thread usage
+      model.set(GRB_IntParam_Threads, 1); //< limits the solver to single thread usage
   
   
       // --- Solver launch ---
-      cout<<"--> Running the solver"<<endl;
+      cout <<"--> Running the solver"<<endl;
       model.optimize();
       model.write("model.lp"); //< Writes the model in a file
   
@@ -249,12 +249,12 @@ void TER_ski::triTopologique() {
         }
     }
     /*
-        tant que la file n'est pas vide
-        on retire un noeud u de la file
-        on ajoute u à l'ordre topologique
-        on retire u de la liste des successeurs de chaque noeud v
-        si degreEntrant[v] == 0, alors on ajoute v à la file
-        si l'ordre topologique ne contient pas tous les noeuds, alors il y a un cycle
+      tant que la file n'est pas vide
+      on retire un noeud u de la file
+      on ajoute u à l'ordre topologique
+      on retire u de la liste des successeurs de chaque noeud v
+      si degreEntrant[v] == 0, alors on ajoute v à la file
+      si l'ordre topologique ne contient pas tous les noeuds, alors il y a un cycle
     */
     while (!file.empty()) {
         int u = file.front();
