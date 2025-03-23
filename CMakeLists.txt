@@ -16,7 +16,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(gurobiSolverCWLP)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 20)
 
 #------------------- CREATION DES VARIABLES POUR LA BIBLIOTHEQUE GUROBI -----------------------
 message(STATUS "CMAKE_SYSTEM_NAME : ${CMAKE_SYSTEM_NAME}")
