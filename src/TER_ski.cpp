@@ -1,7 +1,5 @@
 #include "TER_ski.hpp"
-#include "Ford_Fulkerson.hpp"
-
-//typedef vector<unordered_map<int, Arc>> graph;
+#include "Ford_Fulkerson.hpp
 
 TER_ski::TER_ski(string filename)
     {
