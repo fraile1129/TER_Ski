@@ -122,8 +122,14 @@ void update(graph &g, int source, int sink, vector<int> &preds, double delta) {
   }
 }
 
-double fordfulkerson(graph &g, int source, int sink) {
+double fordfulkerson(graph &g, int source, int sink, int version) {
   double flow = 0;
+  if (version == 2){
+    for (auto &[neighbor, arc] : g[sink]){
+      flow += arc.flow;
+    }
+  }
+  if (verbose) {cout << "Flot de départ : " << flow << endl;}
   bool finished = false;
   int nb_steps = 0;
   while(!finished) {
@@ -142,6 +148,9 @@ double fordfulkerson(graph &g, int source, int sink) {
     else {
       double delta = flow_on_path(g, source, sink, preds);
       flow += delta;
+      if (flow > 1.5 && version<3 ){
+        finished = true;
+      }
       update(g, source, sink, preds, delta);
     }
     nb_steps++;

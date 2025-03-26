@@ -1,6 +1,3 @@
-#ifndef TER_SKI_HPP
-#define TER_SKI_HPP 
-
 #pragma once
 
 #include <fstream>
@@ -24,7 +21,6 @@ struct Arc
 
 typedef vector<unordered_map<int, Arc>> graph;
 
-#include "Ford_Fulkerson.hpp"
 
 
 class TER_ski
@@ -43,9 +39,8 @@ public:
     // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
     void restreindre_graphe(const vector<vector<double>> &Xij);
 
-    void Resolution();
+    void Resolution(int version);
 
 
     
 };
-#endif 

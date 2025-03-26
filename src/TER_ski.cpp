@@ -1,5 +1,8 @@
 #include "TER_ski.hpp"
-#include "Ford_Fulkerson.hpp
+#include "Ford_Fulkerson.hpp"
+#include "Callback.hpp"
+
+//typedef vector<unordered_map<int, Arc>> graph;
 
 TER_ski::TER_ski(string filename)
     {
@@ -50,69 +53,10 @@ TER_ski::TER_ski(string filename)
     }
 
 
-class SeparationCallback: public GRBCallback {
-        public:
-          vector<vector<GRBVar>> & _x;
-            int _size; // Nombre de sommets
-            TER_ski* _graphe;
-            SeparationCallback(vector<vector<GRBVar>> & x, int size,TER_ski *graphe) : _x(x), _size(size), _graphe(graphe) { }
-        protected:
-          void callback () {
-            try {
-              if ( where == GRB_CB_MIPSOL ){        // Solution entière => Lazy Cuts
-                int s = 0;
-                bool fin = false;
-                GRBLinExpr somme = 0;
-
-                  // On récupère la solution
-                  vector<vector<double>> xij(_size);
-                    for (int i=0 ; i<_size ; i++) {
-                        xij[i].resize(_size);
-                        for (int j=0 ; j<_size ; j++) {
-                            xij[i][j] = getSolution(_x[i][j]);
-                        }
-                    }
-                  _graphe->restreindre_graphe(xij);
-                  print_graph(_graphe->GFord);
-                  
-                while (s<_size-1 && !fin){
-                    int t = s+1;
-                    while (t<_size && !fin){
-                      cout << "Calcul flot entre " << s << " et " << t << " :" << endl; 
-                        double flow = fordfulkerson(_graphe->GFord, _graphe->ordreTopologique[s] + _size, _graphe->ordreTopologique[t]);
-                        cout << "Flot : " << flow << endl;
-                        if (flow > 1.5){
-                            fin = true;
-
-                            for (int i=0; i<_size; i++){
-                                for (auto &pair : _graphe->GFord[i+_size]){
-                                    if (pair.second.flow > 0.5){
-                                        somme += _x[i][pair.first];
-                                    }
-                                }
-                            }
-
-                            addLazy(somme>=flow-1);
-                            
-                        } else {
-                            reset_graph(_graphe->GFord);
-                            t++;
-                        }
-                    }
-                    s++;
-                }
-              }
-              
-            } catch (GRBException e) {
-              cout << "Error number: " << e.getErrorCode() << endl;
-              cout << e.getMessage() << endl;
-            } catch (...) { cout << "Error during callback" << endl; }
-          }
-      };
 
 
 void TER_ski::restreindre_graphe(const vector<vector<double>> &Xij)        // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
-{
+  {
     int size = Graphe.size();
     GFord.resize(0);
     GFord.resize(2*size);
@@ -129,106 +73,11 @@ void TER_ski::restreindre_graphe(const vector<vector<double>> &Xij)        // Mo
             }
         }
     }
-  symmetrize(GFord);
-}
+    symmetrize(GFord);
+  }
 
-
-void TER_ski::Resolution(){
-    vector<vector<GRBVar>> x(size);
-    try{
-      // --- Creation of the Gurobi environment ---
-      cout<<"--> Creating the Gurobi environment"<<endl;
-      GRBEnv env = GRBEnv(true);
-      //env.set("LogFile", "mip1.log"); ///< prints the log in a file
-      env.start();
-  
-      // --- Creation of the Gurobi model ---
-      cout<<"--> Creating the Gurobi model"<<endl;
-      GRBModel model = GRBModel(env);
-      model.set(GRB_IntParam_LazyConstraints , 1); // MANDATORY FOR LAZY CONSTRAINTS!
-
-
-      // --- Creation of the variables ---
-      cout<<"--> Creating the variables"<<endl;
-
-      for(size_t i = 0; i < size; ++i){
-        x[i].resize(size);
-        for(size_t j = 0; j < size; ++j){
-            stringstream ss;
-            ss << "x(" << i << "," << j << ")" << endl;
-            x[i][j] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, ss.str());
-          
-          
-        }
-      }
-  
-  
-      // --- Creation of the objective function ---
-      cout << "--> Creating the objective function" << endl;
-      GRBLinExpr obj = 0;
-      for(size_t i = 0; i < size; ++i){
-        for(size_t j = 0; j < size; ++j){
-          if(Graphe[i].count(j)){
-            obj += x[i][j];
-          }
-        }
-      }
-      model.setObjective(obj, GRB_MINIMIZE);
-  
-      SeparationCallback * myCallback = new SeparationCallback(x,size,this);
-      model.setCallback(myCallback); // adding the callback to the model
-      // Optimize model
-      // --- Solver configuration ---
-      cout << "--> Configuring the solver" << endl;
-      model.set(GRB_DoubleParam_TimeLimit, 600.0); //< sets the time limit (in seconds)
-      model.set(GRB_IntParam_Threads, 1); //< limits the solver to single thread usage
-  
-  
-      // --- Solver launch ---
-      cout <<"--> Running the solver"<<endl;
-      model.optimize();
-      model.write("model.lp"); //< Writes the model in a file
-  
-  
-      // --- Solver results retrieval ---
-      cout<<"--> Retrieving solver results "<<endl;
-  
-      int status = model.get(GRB_IntAttr_Status);
-      if (status == GRB_OPTIMAL || (status== GRB_TIME_LIMIT && model.get(GRB_IntAttr_SolCount)>0))
-      {
-        //the solver has computed the optimal solution or a feasible solution (when the time limit is reached before proving optimality)
-        cout << "Succes! (Status: " << status << ")" << endl; //< prints the solver status (see the gurobi documentation)
-        cout << "Runtime : " << model.get(GRB_DoubleAttr_Runtime) << " seconds"<<endl;
-  
-        cout<<"--> Printing results "<<endl;
-        //model.write("solution.sol"); //< Writes the solution in a file
-        cout << "Objective value = "<< model.get(GRB_DoubleAttr_ObjVal)  << endl; //<gets the value of the objective function for the best computed solution (optimal if no time limit)
-        for(size_t i=0;i<size;++i){
-          for(size_t j=0;j<size;++j){
-            if(x[i][j].get(GRB_DoubleAttr_X)>=1e-4){
-              cout << "On pose un capteur sur l'arc (" << i << ", " << j << ")" << endl;
-            }
-          }
-        }
-      }
-  
-      else
-      {
-        // the model is infeasible (maybe wrong) or the solver has reached the time limit without finding a feasible solution
-        cerr << "Fail! (Status: " << status << ")" << endl; //< see status page in the Gurobi documentation
-      }
-      delete myCallback;
-    } catch(GRBException e) {
-      cout << "Error code = " << e.getErrorCode() << endl;
-      cout << e.getMessage() << endl;
-    } catch(...) {
-      cout << "Exception during optimization" << endl;
-    }
-    
-}  
-
-
-void TER_ski::triTopologique() {
+void TER_ski::triTopologique() 
+  {
     vector<int> degreEntrant(size, 0); // nb d'arc entrant pour chaque noeud
     queue<int> file; // FIFO
     //vector<int> ordreTopologique;
@@ -270,6 +119,107 @@ void TER_ski::triTopologique() {
         cerr << "Graphe contient un cycle." << endl;
         abort();
     }
+  }
 
-    //return ordreTopologique;
-}
+
+void TER_ski::Resolution(int version)
+  {
+    vector<vector<GRBVar>> x(size);
+    try{
+      // --- Creation of the Gurobi environment ---
+      cout<<"--> Creating the Gurobi environment"<<endl;
+      GRBEnv env = GRBEnv(true);
+      //env.set("LogFile", "mip1.log"); ///< prints the log in a file
+      env.start();
+  
+      // --- Creation of the Gurobi model ---
+      cout<<"--> Creating the Gurobi model"<<endl;
+      GRBModel model = GRBModel(env);
+      model.set(GRB_IntParam_LazyConstraints , 1); // MANDATORY FOR LAZY CONSTRAINTS!
+
+
+      // --- Creation of the variables ---
+      cout<<"--> Creating the variables"<<endl;
+
+      for(size_t i = 0; i < size; ++i){
+        x[i].resize(size);
+        for(size_t j = 0; j < size; ++j){
+            stringstream ss;
+            ss << "x(" << i << "," << j << ")" << endl;
+            x[i][j] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, ss.str());
+          
+          
+        }
+      }
+  
+  
+      // --- Creation of the objective function ---
+      cout << "--> Creating the objective function" << endl;
+      GRBLinExpr obj = 0;
+      for(size_t i = 0; i < size; ++i){
+        for(size_t j = 0; j < size; ++j){
+          if(Graphe[i].count(j)){
+            obj += x[i][j];
+          }
+        }
+      }
+      model.setObjective(obj, GRB_MINIMIZE);
+  
+      SeparationCallback * myCallback = new SeparationCallback(x,size,this,version);
+      model.setCallback(myCallback); // adding the callback to the model
+      // Optimize model
+      // --- Solver configuration ---
+      cout << "--> Configuring the solver" << endl;
+      model.set(GRB_DoubleParam_TimeLimit, 600.0); //< sets the time limit (in seconds)
+      model.set(GRB_IntParam_Threads, 1); //< limits the solver to single thread usage
+  
+  
+      // --- Solver launch ---
+      cout <<"--> Running the solver"<<endl;
+      model.optimize();
+      model.write("model.lp"); //< Writes the model in a file
+  
+  
+      // --- Solver results retrieval ---
+      cout<<"--> Retrieving solver results "<<endl;
+  
+      int status = model.get(GRB_IntAttr_Status);
+      if (status == GRB_OPTIMAL || (status== GRB_TIME_LIMIT && model.get(GRB_IntAttr_SolCount)>0))
+      {
+        //the solver has computed the optimal solution or a feasible solution (when the time limit is reached before proving optimality)
+        cout << "Succes! (Status: " << status << ")" << endl; //< prints the solver status (see the gurobi documentation)
+        cout << "Runtime : " << model.get(GRB_DoubleAttr_Runtime) << " seconds"<<endl;
+  
+        cout<<"--> Printing results "<<endl;
+        //model.write("solution.sol"); //< Writes the solution in a file
+        cout << "Objective value = "<< model.get(GRB_DoubleAttr_ObjVal) + doublons.size()  << endl; //<gets the value of the objective function for the best computed solution (optimal if no time limit)
+        for(size_t i=0;i<size;++i){
+          for(size_t j=0;j<size;++j){
+            if(x[i][j].get(GRB_DoubleAttr_X)>=1e-4){
+              cout << "On pose un capteur sur l'arc (" << i << ", " << j << ")" << endl;
+            }
+          }
+        }
+
+        for (const auto &[i,j] : doublons){
+          cout << "On pose un capteur sur l'arc (" << i << ", " << j << "), doublon" << endl;
+        }
+      }
+  
+      else
+      {
+        // the model is infeasible (maybe wrong) or the solver has reached the time limit without finding a feasible solution
+        cerr << "Fail! (Status: " << status << ")" << endl; //< see status page in the Gurobi documentation
+      }
+      delete myCallback;
+    } catch(GRBException e) {
+      cout << "Error code = " << e.getErrorCode() << endl;
+      cout << e.getMessage() << endl;
+    } catch(...) {
+      cout << "Exception during optimization" << endl;
+    }
+    
+  }  
+
+
+
