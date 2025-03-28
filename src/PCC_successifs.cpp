@@ -300,7 +300,7 @@ int graphCM::PCC_successifs (){      // Applique l'algorithme des plus courts ch
         // Calculer les plus courts chemins du noeud k vers tous les autres sommets de G selon les coûts réduits
         vector <double> d(size, 1e9);
         vector <int> pred (size, -1);
-        int l = Dijsktra (G, k, d, pred, D);
+        int l = Dijsktra (k, d, pred, D);
 
         if (l==-1){
             cout << "Il n'y a pas de chemin allant du sommet " << k << " vers un noeud en déficit : le problème est irréalisable" << endl;
@@ -317,10 +317,10 @@ int graphCM::PCC_successifs (){      // Applique l'algorithme des plus courts ch
         //double delta = Delta(G, k, l, pred, exces);
 
         // Augmentation du flot
-        augmenter_flot(G,k,l,delta,pred);
+        augmenter_flot(k,l,delta,pred);
 
         // Tout mettre à jour
-        miseAJour(G, k, l, E, D, exces, potentiel, delta);
+        miseAJour(k, l, E, D, exces, potentiel, delta);
 
 
     }
