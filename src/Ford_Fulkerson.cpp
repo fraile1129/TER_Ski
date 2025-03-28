@@ -1,7 +1,7 @@
 #include "Ford_Fulkerson.hpp"
 
 // Set to true for debugging messages
-bool verbose = true;
+bool verbose = false;
 
 
 
@@ -125,7 +125,7 @@ void update(graph &g, int source, int sink, vector<int> &preds, double delta) {
 double fordfulkerson(graph &g, int source, int sink, int version) {
   double flow = 0;
   if (version == 2){
-    for (auto &[neighbor, arc] : g[sink]){
+    for (auto &[neighbor, arc] : g[source]){
       flow += arc.flow;
     }
   }
@@ -155,7 +155,7 @@ double fordfulkerson(graph &g, int source, int sink, int version) {
     }
     nb_steps++;
   }
-  cerr << "Nb steps: " << nb_steps << endl;
+  //cerr << "Nb steps: " << nb_steps << endl;
   return flow;
 }
 

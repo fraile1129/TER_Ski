@@ -17,4 +17,4 @@ void reset_graph(graph& g);
 
 void symmetrize(graph& g);
 
-double fordfulkerson(graph &g, int source, int sink);
+double fordfulkerson(graph &g, int source, int sink, int version);

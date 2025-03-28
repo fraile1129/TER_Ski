@@ -1,23 +1,26 @@
 #pragma once
 
-#include <fstream>
-#include <vector>
-#include <string>
+//#include <fstream>
+//#include <vector>
+//#include <string>
 #include <unordered_map>
-#include <iostream>
+//#include <iostream>
 #include <utility>
 #include <sstream>
 #include "gurobi_c++.h" 
 
+#include "PCC_successifs.hpp"
 
-using namespace std;
 
-struct Arc
+
+/*struct Arc
 {
     double capacity=1;
     double flow;
     double residual;
-};
+    double cost;
+    double costPi;
+};*/
 
 typedef vector<unordered_map<int, Arc>> graph;
 
@@ -31,13 +34,14 @@ public:
     vector<pair<int, int>> doublons;
     graph GFord;
     vector<int> ordreTopologique;
+    graphCM GPCC;
 
     TER_ski(string filename);
 
     void triTopologique();
 
     // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
-    void restreindre_graphe(const vector<vector<double>> &Xij);
+    void restreindre_graphe_FF(const vector<vector<double>> &Xij);
 
     void Resolution(int version);
 

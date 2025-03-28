@@ -17,13 +17,11 @@ TER_ski::TER_ski(string filename)
 
         string temp = "a";
         int numNodes = -1;
-        cout << "test" << endl;
         while (inf >> temp)
         {
             if (temp == "NODES")
             {
                 inf >> numNodes;
-                cout << numNodes << endl;
                 Graphe.resize(numNodes);
             }
             else if (temp == "LINKS")
@@ -42,6 +40,8 @@ TER_ski::TER_ski(string filename)
                         arc.capacity = capacity;
                         arc.flow = 0.0;
                         arc.residual = capacity;
+                        arc.cost = 0.0;
+                        arc.costPi = 0.0;
                         Graphe[node1][node2] = arc;
                     }
                 }
@@ -55,7 +55,7 @@ TER_ski::TER_ski(string filename)
 
 
 
-void TER_ski::restreindre_graphe(const vector<vector<double>> &Xij)        // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
+void TER_ski::restreindre_graphe_FF(const vector<vector<double>> &Xij)        // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
   {
     int size = Graphe.size();
     GFord.resize(0);
@@ -63,12 +63,10 @@ void TER_ski::restreindre_graphe(const vector<vector<double>> &Xij)        // Mo
     double capacity = 1.;
     
     for (int i=0; i<size; i++){
-        Arc a = {capacity, 0., capacity};
+        Arc a = {capacity, 0., capacity, 0., 0.};
         GFord[i][i+size] = a;
-        cout << GFord[i][i+size].capacity << endl;
         for (auto &pair : Graphe[i]){
             if (Xij[i][pair.first] < 0.5){
-              cout << "ajout arc " << i << " " << pair.first << endl;
                 GFord[size + i][pair.first] = pair.second;
             }
         }
@@ -115,7 +113,6 @@ void TER_ski::triTopologique()
         }
     }
     if (ordreTopologique.size() != size) {
-      cout << ordreTopologique.size();
         cerr << "Graphe contient un cycle." << endl;
         abort();
     }
@@ -125,7 +122,7 @@ void TER_ski::triTopologique()
 void TER_ski::Resolution(int version)
   {
     vector<vector<GRBVar>> x(size);
-    try{
+    //try{
       // --- Creation of the Gurobi environment ---
       cout<<"--> Creating the Gurobi environment"<<endl;
       GRBEnv env = GRBEnv(true);
@@ -144,11 +141,12 @@ void TER_ski::Resolution(int version)
       for(size_t i = 0; i < size; ++i){
         x[i].resize(size);
         for(size_t j = 0; j < size; ++j){
+          if (Graphe[i].contains(j)){
             stringstream ss;
             ss << "x(" << i << "," << j << ")" << endl;
             x[i][j] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, ss.str());
           
-          
+          }
         }
       }
   
@@ -158,7 +156,7 @@ void TER_ski::Resolution(int version)
       GRBLinExpr obj = 0;
       for(size_t i = 0; i < size; ++i){
         for(size_t j = 0; j < size; ++j){
-          if(Graphe[i].count(j)){
+          if(Graphe[i].contains(j)){
             obj += x[i][j];
           }
         }
@@ -195,8 +193,10 @@ void TER_ski::Resolution(int version)
         cout << "Objective value = "<< model.get(GRB_DoubleAttr_ObjVal) + doublons.size()  << endl; //<gets the value of the objective function for the best computed solution (optimal if no time limit)
         for(size_t i=0;i<size;++i){
           for(size_t j=0;j<size;++j){
-            if(x[i][j].get(GRB_DoubleAttr_X)>=1e-4){
-              cout << "On pose un capteur sur l'arc (" << i << ", " << j << ")" << endl;
+            if (Graphe[i].contains(j)){
+              if(x[i][j].get(GRB_DoubleAttr_X)>=1e-4){
+                cout << "On pose un capteur sur l'arc (" << i << ", " << j << ")" << endl;
+              }
             }
           }
         }
@@ -205,19 +205,19 @@ void TER_ski::Resolution(int version)
           cout << "On pose un capteur sur l'arc (" << i << ", " << j << "), doublon" << endl;
         }
       }
-  
+      
       else
       {
         // the model is infeasible (maybe wrong) or the solver has reached the time limit without finding a feasible solution
         cerr << "Fail! (Status: " << status << ")" << endl; //< see status page in the Gurobi documentation
       }
       delete myCallback;
-    } catch(GRBException e) {
+    /*} catch(GRBException e) {
       cout << "Error code = " << e.getErrorCode() << endl;
       cout << e.getMessage() << endl;
     } catch(...) {
       cout << "Exception during optimization" << endl;
-    }
+    }*/
     
   }  
 
