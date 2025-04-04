@@ -27,19 +27,35 @@ void add_Arc(graph &G, int begin, int end, double capacity, double cost){       
 
 }*/
 
-
-/*void symmetrize(graph &G){      // Symétrise le graphe
-    
-    for (int i=0; i<int(G.first.size()); i++){    // Pour chaque sommet
-        for (auto &[voisin, arcs] : G.second[i]){     // On prend tous ses voisins
-            for (auto &arc : arcs){     // On prend tous les arcs sortant de ce voisin
-                if (arc.capa > 1e-6){       // Pour ne pas rajouter l'inverse des arcs inverse
-                    add_Arc (G, voisin, i, 0, -1*arc.cost);
-                }
+void graphCM::reset_graph()
+    {
+        for (size_t i=0; i<Graphe.size(); i++) {
+            
+            auto it = Graphe[i].begin();
+            while (it != Graphe[i].end()){
+                int voisin = it->first;
+                Arc arc = it->second;
+                Arc a = {arc.capacity, 0, arc.capacity, arc.cost, arc.cost};
+                it = Graphe[i].erase(it);
+                Graphe[i][voisin] = a;
             }
         }
     }
-}*/
+
+void graphCM::symmetrize(){      // Symétrise le graphe
+    
+    for (size_t i=0; i<supply.size(); i++){    // Pour chaque sommet
+        for (auto &[voisin, arc] : Graphe[i]){     // On prend tous ses voisins
+            
+            if (arc.capacity > 1e-6){       // Pour ne pas rajouter l'inverse des arcs inverse
+                Arc a = {0, 0, 0, -1*arc.cost, -1*arc.cost};
+                Graphe[voisin][i] = a;
+                //add_Arc (G, voisin, i, 0, -1*arc.cost);
+            }
+        
+        }
+    }
+}
 
 
 /*graph read_graph(string filename){      // Renvoie un graphe à partir d'un fichier
@@ -107,7 +123,7 @@ void add_Arc(graph &G, int begin, int end, double capacity, double cost){       
     return G;
 }*/
 
-void graphCM::print_graph(){     // Affiche le graphe G
+/*void graphCM::print_graph(){     // Affiche le graphe G
     for (size_t i=0; i<supply.size(); i++){    // Pour chaque sommet
         cout << endl << "Voisins du sommet " << i << " (supply = " << supply[i] <<  ") :" << endl;
         for (auto &[voisin, arcs] : Graphe[i]){      // Pour chaque voisin
@@ -120,12 +136,12 @@ void graphCM::print_graph(){     // Affiche le graphe G
         }
     }
     cout << endl << endl << endl;
-}
+}*/
 
 int graphCM::indCoutMin(unordered_set<int> &noeuds, vector<double> &distances){     // Renvoie l'indice du noeud temporaire dont la valeur dans le vecteur de distances est minimum
 
-    double min = 1e10;
-    int imin;     // !!! attention  
+    double min = std::numeric_limits<double>::infinity();
+    int imin = -1;
     for (int i: noeuds){
         if (distances[i] < min){
             imin = i;
@@ -134,6 +150,82 @@ int graphCM::indCoutMin(unordered_set<int> &noeuds, vector<double> &distances){ 
     }
 
     return imin;
+}
+
+bool graphCM::Dijsktra (int s, int t, vector <double> &d, vector <int> &pred, const vector<int> &Topo){
+
+    int size = d.size() ;
+    int a = Topo[s] + size/2;
+    int b = Topo[t];
+    
+    unordered_set <int> Temp;
+    for (int i=s+1; i<t+1; i++){
+        Temp.insert(Topo[i]);
+    }
+
+    d[a] = 0;
+    
+    for (auto &[voisin, arc] : Graphe[a]){
+        if (arc.residual > 1e-6){   // Si l'arc a une capa résiduelle non nulle
+            //cout << "voisin de a : " << voisin << endl;
+            d[voisin] = arc.costPi;
+            d[voisin + size/2] = arc.costPi;
+            pred[voisin] = a;
+            pred[voisin + size/2] = voisin;
+        }
+    }
+
+    //cout << "chemin de " << Topo[s] << " à " << Topo[t] << endl;
+    while (!Temp.empty()){
+    
+        /*cout << "distances :" << endl;
+        for (int i=0; i<size; i++){
+            cout << i << " : " << d[i] << endl;
+        }
+        cout << "Temp : " << endl;
+        for (auto &som : Temp){
+            cout << som << " ";
+        }
+        cout << endl;*/
+        int imin = indCoutMin(Temp,d);
+        //cout << "imin : " << imin << endl;
+        if (imin == -1){
+            return false;
+        }
+        Temp.erase(imin);
+
+        if (d[imin] > 1e8){    // On vérifie que le noeud soit accessible depuis k
+            return false;
+        }
+
+        if (imin == b){              // On arrête l'algo si b n'est plus temporaire
+            for (int i : Temp){     // On met le degré des noeuds encore temporaires au degré du noeud en déficit trouvé
+                d[i] = d[imin];
+            }
+            return true;
+        }
+
+        for (auto &[voisin, arc] : Graphe[imin + size/2]){    // Pour tous les voisins du sommet imin
+
+            if (Temp.count(voisin)){    // Si ce voisin a une étiquette temporaire
+                // On prend l'arc de coût réduit minimum et de capacité résiduelle non nulle allant vers ce sommet
+                //auto it = arcs.begin();
+                if (arc.residual > 1e-6){   // S'il y a bien un arc de capacité résiduelle non nulle
+                    double Cij = arc.costPi;
+                    if (d[voisin] > d[imin] + Cij){
+                        d[voisin] = d[imin] + Cij;
+                        d[voisin + size/2] = d[voisin];
+                        pred[voisin] = imin + size/2;
+                        pred[voisin + size/2] = voisin;
+                    }
+                }
+            }
+        }
+
+    }
+
+    cerr << "Erreur pour Dijsktra : soit l'algo a un problème, soit il n'y a plus de noeuds en déficit alors qu'il reste un noeud en excès : Σ(b(i)) ≠ 0?" << endl;
+    abort();
 }
 
 int graphCM::Dijsktra (int k, vector <double> &d, vector <int> &pred, Set &D){     // Calcule les PCC de k aux autres sommets selon leur coût réduit, renvoie un noeud en déficit accessible, -1 sinon
@@ -148,6 +240,10 @@ int graphCM::Dijsktra (int k, vector <double> &d, vector <int> &pred, Set &D){  
     while (!Temp.empty()){
 
         int imin = indCoutMin(Temp, d);
+        if (imin == -1){
+            cerr << "pas normal ça" << endl;
+            abort();
+        }
         Temp.erase(imin);
 
         if (d[imin] > 1e8){    // On vérifie que le noeud soit accessible depuis k
@@ -161,13 +257,13 @@ int graphCM::Dijsktra (int k, vector <double> &d, vector <int> &pred, Set &D){  
             return imin;
         }
 
-        for (auto &[voisin, arcs] : Graphe[imin]){    // Pour tous les voisins du sommet imin
+        for (auto &[voisin, arc] : Graphe[imin]){    // Pour tous les voisins du sommet imin
 
             if (Temp.count(voisin)){    // Si ce voisin a une étiquette temporaire
                 // On prend l'arc de coût réduit minimum et de capacité résiduelle non nulle allant vers ce sommet
-                auto it = arcs.begin();
-                if (it->residual > 1e-6){   // S'il y a bien un arc de capacité résiduelle non nulle
-                    double Cij = it->costPi;
+                //auto it = arcs.begin();
+                if (arc.residual > 1e-6){   // S'il y a bien un arc de capacité résiduelle non nulle
+                    double Cij = arc.costPi;
                     if (d[voisin] > d[imin] + Cij){
                         d[voisin] = d[imin] + Cij;
                         pred[voisin] = imin;
@@ -186,20 +282,25 @@ void graphCM::augmenter_flot(int k, int l, double delta, vector<int> &pred){   /
     while (l!=k){   // On parcourt à l'envers le chemin de k à l
         int i = pred[l];
 
+        double flotInv = Graphe[l][i].flow;   
+
         // Arc normal
-        Arc arcModif = *Graphe[i][l].begin();
-        Graphe[i][l].erase(Graphe[i][l].begin());
-        arcModif.flow += delta;
+        Arc arcModif = Graphe[i][l];
+        Graphe[i].erase(l);
+        if (flotInv < 1e-6){        // Si l'arc inverse a un flot nul
+            arcModif.flow += delta;
+        }
         arcModif.residual -= delta;
-        Graphe[i][l].insert(arcModif);
+        Graphe[i][l] = arcModif;
 
         // Arc inverse
-        double coutInv = -1*arcModif.cost;
-        auto it = find_if(Graphe[l][i].begin(), Graphe[l][i].end(), [coutInv](const Arc& arc) { return (abs(arc.cost - coutInv) < 1e-6); });  // Pour obtenir l'iterateur correspondant à l'arc inverse
-        Arc arcInv = *it;
-        Graphe[l][i].erase(it);
-        arcInv.residual += delta;
-        Graphe[l][i].insert(arcInv);
+        arcModif = Graphe[l][i];
+        Graphe[l].erase(i);
+        if (flotInv > 1e-6){        // Si l'arc inverse a un flot non nul
+            arcModif.flow -= delta;
+        }
+        arcModif.residual += delta;
+        Graphe[l][i] = arcModif;
 
         l = i;
     }
@@ -218,59 +319,37 @@ void graphCM::miseAJour(int k, int l, stack<int> &E, Set &D, vector<double> &exc
         D.erase(l);
     }
 
-    // Mise à jour des coùts réduits
+    // Mise à jour des coûts réduits
     for (size_t i=0; i<supply.size(); i++){     // Pour chaque sommet
-        for (auto &[voisin, arcs] : Graphe[i]){      // Pour chaque voisin
+        for (auto &[voisin, arc] : Graphe[i]){      // Pour chaque voisin
 
-            set<Arc,compare> arcsModif;
-            for (auto &arc : arcs){     // Pour chaque arc allant vers ce voisin
-                Arc arcModif = arc;
-                arcModif.costPi = arc.cost - pi[i] + pi[voisin];
-                arcsModif.insert(arcModif);
-            }
-            Graphe[i][voisin] = arcsModif;
+            Arc arcModif = arc;
+            arcModif.costPi = arc.cost - pi[i] + pi[voisin];
+            Graphe[i][voisin] = arcModif;
 
-        }
-    }
-
-    // Vérifier qu'il n'y a pas de flot dans les 2 sens
-    for (size_t i=0; i<supply.size(); i++){     // Pour chaque sommet
-        for (auto &[voisin, arcs] : Graphe[i]){      // Pour chaque voisin
-            for (auto it = arcs.begin(); it != arcs.end(); ++it){       // Pour chaque arc allant vers ce voisin
-
-                Arc arcNorm = *it;
-                if (arcNorm.flow > 1e-6){   // Si le flot est non nul
-
-                    double coutInv = -1*arcNorm.cost;
-                    auto itInv = find_if(Graphe[voisin][i].begin(), Graphe[voisin][i].end(), [coutInv](const Arc& arc) { return (abs(arc.cost - coutInv) < 1e-6); });  // Pour obtenir l'iterateur correspondant à l'arc inverse
-                    Arc arcInv = *itInv;
-
-                    if (arcInv.flow > 1e-6){    // Si le flot inverse est aussi non nul
-
-                        // On prend le min des 2 flots
-                        double flotMin = arcNorm.flow;
-                        if (arcNorm.flow > arcInv.flow){
-                            flotMin = arcInv.flow;
-                        }
-
-                        // On modifie le flot de l'arc norm
-                        arcNorm.flow -= flotMin;
-                        arcs.erase(it);
-                        arcs.insert(arcNorm);
-
-                        // On modifie le flot de l'arc inverse
-                        arcInv.flow -= flotMin;
-                        Graphe[voisin][i].erase(itInv);
-                        Graphe[voisin][i].insert(arcInv);
-
-                    }
-                }
-            }
         }
     }
 }
+void graphCM::miseAJour(int s, int t, vector<double> &exces, vector <double> &pi, double delta, const vector<int> &Topo){    // Met à jour le graphe suite à l'augmentation de flot
 
-int graphCM::PCC_successifs (){      // Applique l'algorithme des plus courts chemins successifs sur le graphe
+    int demi_size = Topo.size();
+    exces[Topo[s] + demi_size] -= delta;
+    exces[Topo[t]] += delta;
+
+    // Mise à jour des coûts réduits
+    /*for (size_t i=s; i<t+1; i++){     // Pour chaque sommet
+        for (auto &[voisin, arc] : Graphe[Topo[i]+demi_size]){      // Pour chaque voisin
+
+            Arc arcModif = arc;
+            arcModif.costPi = arc.cost - pi[Topo[i]] + pi[voisin];
+            Graphe[Topo[i]+demi_size][voisin] = arcModif;
+
+        }
+    }*/
+}
+
+
+double graphCM::PCC_successifs (){      // Applique l'algorithme des plus courts chemins successifs sur le graphe
 
     // x=0, π = 0
     int size = Graphe.size();
@@ -303,7 +382,7 @@ int graphCM::PCC_successifs (){      // Applique l'algorithme des plus courts ch
         int l = Dijsktra (k, d, pred, D);
 
         if (l==-1){
-            cout << "Il n'y a pas de chemin allant du sommet " << k << " vers un noeud en déficit : le problème est irréalisable" << endl;
+            //cout << "Il n'y a pas de chemin allant du sommet " << k << " vers un noeud en déficit : le problème est irréalisable" << endl;
             return -1;
         }
 
@@ -325,5 +404,91 @@ int graphCM::PCC_successifs (){      // Applique l'algorithme des plus courts ch
 
     }
 
-    return 1;
+    double coutTotal = 0;
+
+    for (int i=0; i<size; i++){     // Pour chaque sommet
+        for (auto &[voisin, arc] : Graphe[i]){      // Pour chaque voisin
+
+            if (arc.flow > arc.capacity){       // Vérification contrainte de capacité de l'arc
+                cout << "Erreur : l'arc " << i << "->" << voisin << " a un flot de " << arc.flow << " pour une capacité de " << arc.capacity << ": le flot n'est pas réalisable" << endl;
+                return -1;
+            }
+
+
+            // Pour vérifier les contraintes de supply
+            if (arc.flow > 1e-6){   // Si le flot est non nul
+                coutTotal += arc.flow*arc.cost;
+            }
+
+        }
+    }
+
+    return coutTotal;
+}
+
+
+
+
+
+double graphCM::PCC_successifs (int s, int t, const vector<int> &Topo){      // Applique l'algorithme des plus courts chemins successifs sur le graphe
+
+    int size = Graphe.size();
+    int a = Topo[s] + size/2;
+    int b = Topo[t];
+
+    vector <double> potentiel (size/2, 0.);
+    vector <double> exces = supply;
+
+    while (exces[a] > 1e-8){
+
+        vector <double> d(size, std::numeric_limits<double>::infinity());
+        vector <int> pred (size, -1);
+
+        if (Dijsktra (s, t, d, pred, Topo)){
+
+            // π = π - d
+            for (int i=s; i<t+1; i++){
+                potentiel[Topo[i]] -= d[Topo[i]];
+            }
+
+            double delta = 1.;
+
+            // Augmentation du flot
+            augmenter_flot(a,b,delta,pred);
+
+            // Tout mettre à jour
+            miseAJour(s, t, exces, potentiel, delta, Topo);
+
+            //cout << "exces de " << a-size/2 << " : " << exces[a] << endl;
+
+        } else {
+            //cout << "Il n'y a pas de chemin allant du sommet " << k << " vers un noeud en déficit : le problème est irréalisable" << endl;
+            return -1;
+        }
+
+        
+
+    }
+
+    double coutTotal = 0;
+    //cout << "flot réalisable" << endl;
+
+    for (int i=0; i<size; i++){     // Pour chaque sommet
+        for (auto &[voisin, arc] : Graphe[i]){      // Pour chaque voisin
+
+            /*if (arc.flow > arc.capacity){       // Vérification contrainte de capacité de l'arc
+                cout << "Erreur : l'arc " << i << "->" << voisin << " a un flot de " << arc.flow << " pour une capacité de " << arc.capacity << ": le flot n'est pas réalisable" << endl;
+                return -1;
+            }*/
+
+
+            if (arc.flow > 1e-6){   // Si le flot est non nul
+                coutTotal += arc.flow*arc.cost;
+            }
+
+        }
+    }
+
+    return coutTotal;
+
 }

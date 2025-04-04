@@ -30,7 +30,7 @@ void reset_graph(graph& g)
 
 void symmetrize(graph& g)
     {
-      Arc a = {0.,0.,0.};
+      Arc a = {0.,0.,0.,0.,0.};
         for (int i=0; i<int(g.size()); i++) {
             for(auto& pair: g[i]) {
                 if (g[i][pair.first].capacity > 0.1){
@@ -124,7 +124,7 @@ void update(graph &g, int source, int sink, vector<int> &preds, double delta) {
 
 double fordfulkerson(graph &g, int source, int sink, int version) {
   double flow = 0;
-  if (version == 2){
+  if (version%2 == 2){
     for (auto &[neighbor, arc] : g[source]){
       flow += arc.flow;
     }
@@ -148,7 +148,7 @@ double fordfulkerson(graph &g, int source, int sink, int version) {
     else {
       double delta = flow_on_path(g, source, sink, preds);
       flow += delta;
-      if (flow > 1.5 && version<3 ){
+      if (flow > 1.5 && version%3 >0 ){   // Pas les versions 3,6,9
         finished = true;
       }
       update(g, source, sink, preds, delta);

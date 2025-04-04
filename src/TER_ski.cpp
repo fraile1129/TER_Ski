@@ -74,6 +74,31 @@ void TER_ski::restreindre_graphe_FF(const vector<vector<double>> &Xij)        //
     symmetrize(GFord);
   }
 
+void TER_ski::restreindre_graphe_CM(const vector<vector<double>> &Xij)
+  {
+    int size = Graphe.size();
+    GPCC.supply.resize(0);
+    GPCC.supply.resize(2*size, 0.);
+    GPCC.Graphe.resize(0);
+    GPCC.Graphe.resize(2*size);
+    double capacity = 1.;
+
+    for (int i=0; i<size; i++){
+      Arc a = {capacity, 0., capacity, 0., 0.};
+      GPCC.Graphe[i][i+size] = a;
+      for (auto &[voisin, arc] : Graphe[i]){
+        Arc b = arc;
+        b.cost = Xij[i][voisin];
+        b.costPi = Xij[i][voisin];
+        GPCC.Graphe[size + i][voisin] = b;
+      }
+    }
+    
+    GPCC.symmetrize();
+
+  }
+
+
 void TER_ski::triTopologique() 
   {
     vector<int> degreEntrant(size, 0); // nb d'arc entrant pour chaque noeud

@@ -13,19 +13,6 @@
 
 
 
-/*struct Arc
-{
-    double capacity=1;
-    double flow;
-    double residual;
-    double cost;
-    double costPi;
-};*/
-
-typedef vector<unordered_map<int, Arc>> graph;
-
-
-
 class TER_ski
 {
 public:
@@ -42,6 +29,9 @@ public:
 
     // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
     void restreindre_graphe_FF(const vector<vector<double>> &Xij);
+
+    // Modifie GPCC 
+    void restreindre_graphe_CM(const vector<vector<double>> &Xij);
 
     void Resolution(int version);
 
