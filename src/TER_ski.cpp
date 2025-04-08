@@ -50,6 +50,7 @@ TER_ski::TER_ski(string filename)
         size = numNodes;
         inf.close();
         triTopologique();
+        restreindre_graphe_CM();
     }
 
 
@@ -74,7 +75,7 @@ void TER_ski::restreindre_graphe_FF(const vector<vector<double>> &Xij)        //
     symmetrize(GFord);
   }
 
-void TER_ski::restreindre_graphe_CM(const vector<vector<double>> &Xij)
+void TER_ski::restreindre_graphe_CM()
   {
     int size = Graphe.size();
     GPCC.supply.resize(0);
@@ -87,10 +88,7 @@ void TER_ski::restreindre_graphe_CM(const vector<vector<double>> &Xij)
       Arc a = {capacity, 0., capacity, 0., 0.};
       GPCC.Graphe[i][i+size] = a;
       for (auto &[voisin, arc] : Graphe[i]){
-        Arc b = arc;
-        b.cost = Xij[i][voisin];
-        b.costPi = Xij[i][voisin];
-        GPCC.Graphe[size + i][voisin] = b;
+        GPCC.Graphe[size + i][voisin] = arc;
       }
     }
     
@@ -245,6 +243,3 @@ void TER_ski::Resolution(int version)
     }*/
     
   }  
-
-
-

@@ -17,6 +17,18 @@ void print_graph(graph& g) {
   }
 }
 
+void print_graph_cout(graph &G)
+    {
+        int size = G.size();
+        for (int i=size/2; i<size; i++){
+            cout << endl << "Sommet " << i-size/2 << ", voisins :" << endl;
+            for (auto &[voisin, arc] : G[i]){
+                cout << "   sommet " << voisin << " : cap = " << arc.capacity << ", res = " << arc.residual << ", flow = " << arc.flow << ", cost = " << arc.cost << ", costPi = " << arc.costPi << endl;
+            }
+            cout << endl;
+        }
+    }
+
 void reset_graph(graph& g) 
     {
         for (auto &liste_de_voisins: g) {

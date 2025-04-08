@@ -12,6 +12,7 @@
 
 
 void print_graph(graph& g);
+void print_graph_cout(graph& g);
 
 void reset_graph(graph& g);
 

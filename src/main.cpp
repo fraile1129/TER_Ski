@@ -2,6 +2,13 @@
 #include "Ford_Fulkerson.hpp" 
 
 int main(int argc, char *argv[]){
+
+    if (argc==1){
+
+        
+
+    }
+
     if (argc < 3){
         cerr << "Passez un fichier et une version en argument!" << endl;
         return 1;
@@ -11,6 +18,7 @@ int main(int argc, char *argv[]){
     filename = "data/" + filename;
     TER_ski graphe(filename);
 
+    print_graph_cout(graphe.GPCC.Graphe);
 
     graphe.Resolution(version);
 

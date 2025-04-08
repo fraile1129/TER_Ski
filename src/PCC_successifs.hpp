@@ -30,6 +30,8 @@ struct Arc {
 typedef vector<unordered_map<int, Arc>> graph;
 
 
+
+
 class graphCM
 {
     public:
@@ -54,7 +56,10 @@ class graphCM
             
         void print_graph();         // Affiche le graphe G
 
+        void reset_graph(int a, int b);
         void reset_graph();
+
+        void ajouter_couts(const vector<vector<double>> &Xij);
 
         int indCoutMin(unordered_set<int> &noeuds, vector<double> &distances);     // Renvoie l'indice du noeud temporaire dont la valeur dans le vecteur de distances est minimum
 
@@ -69,6 +74,8 @@ class graphCM
         double PCC_successifs ();      // Applique l'algorithme des plus courts chemins successifs sur le graphe
 
         bool Dijsktra (int s, int t, vector <double> &d, vector <int> &pred, const vector<int> &Topo); // PCC de a à b
+
+        bool Bellman (int s, int t, vector<double> &d, vector<int> &pred, const vector<int> &Topo);
 
         double PCC_successifs (int s, int t, const vector<int> &Topo);      // Applique l'algorithme des plus courts chemins successifs sur le graphe
 

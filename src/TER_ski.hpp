@@ -31,10 +31,8 @@ public:
     void restreindre_graphe_FF(const vector<vector<double>> &Xij);
 
     // Modifie GPCC 
-    void restreindre_graphe_CM(const vector<vector<double>> &Xij);
+    void restreindre_graphe_CM();
 
     void Resolution(int version);
-
-
     
 };

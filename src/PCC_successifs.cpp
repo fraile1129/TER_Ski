@@ -27,7 +27,33 @@ void add_Arc(graph &G, int begin, int end, double capacity, double cost){       
 
 }*/
 
+void graphCM::ajouter_couts(const vector<vector<double>> &Xij){
+    int n = Xij.size();
+    for (size_t i=0; i<n; i++){
+        unordered_map<int,Arc> voisins;
+        for (auto &[voisin, arc] : Graphe[i+n]){
+            Arc a = arc;
+            a.cost = Xij[i][voisin];
+            a.costPi = Xij[i][voisin];
+            voisins[voisin] = a;
+        }
+        Graphe[i+n] = voisins;
+    }
+}
+
 void graphCM::reset_graph()
+    {
+        for (size_t i=0; i<Graphe.size(); i++){
+            supply[i] = 0;
+            for (auto &[voisin, arc] : Graphe[i]){
+                arc.flow = 0;
+                arc.residual = arc.capacity;
+                arc.costPi = arc.cost;
+            }
+        }
+    }
+
+void graphCM::reset_graph(int a, int b)
     {
         for (size_t i=0; i<Graphe.size(); i++) {
             
@@ -40,6 +66,8 @@ void graphCM::reset_graph()
                 Graphe[i][voisin] = a;
             }
         }
+        supply[a] = 0;
+        supply[b] = 0;
     }
 
 void graphCM::symmetrize(){      // Symétrise le graphe
@@ -337,16 +365,15 @@ void graphCM::miseAJour(int s, int t, vector<double> &exces, vector <double> &pi
     exces[Topo[t]] += delta;
 
     // Mise à jour des coûts réduits
-    /*for (size_t i=s; i<t+1; i++){     // Pour chaque sommet
-        for (auto &[voisin, arc] : Graphe[Topo[i]+demi_size]){      // Pour chaque voisin
-
-            Arc arcModif = arc;
-            arcModif.costPi = arc.cost - pi[Topo[i]] + pi[voisin];
-            Graphe[Topo[i]+demi_size][voisin] = arcModif;
-
+    for (size_t sommet=0; sommet<2*demi_size; sommet++){     // Pour chaque sommet
+        
+        for (auto &[voisin, arc] : Graphe[sommet]){      // Pour chaque voisin
+            arc.costPi = arc.cost - pi[sommet] + pi[voisin];
         }
-    }*/
+    }
 }
+
+
 
 
 double graphCM::PCC_successifs (){      // Applique l'algorithme des plus courts chemins successifs sur le graphe
@@ -427,7 +454,41 @@ double graphCM::PCC_successifs (){      // Applique l'algorithme des plus courts
 }
 
 
+bool graphCM::Bellman (int s, int t, vector<double> &d, vector<int> &pred, const vector<int> &Topo)
+{
+    int size = Graphe.size()/2;
+    int a = Topo[s] + size;
+    int b = Topo[t];
+    unordered_set<int> Temp;
+    for (int i=0; i<2*size;i++){
+        Temp.insert(i);
+    }
 
+    d[a] = 0;
+    for (int i=s+1; i<t+1; i++){
+        int j = Topo[i];
+        Temp.erase(j);
+        for (auto &[voisin, arc] : Graphe[j]){
+            if (voisin != j+size){   // Parmi les prédécesseurs
+                if (d[j] > d[voisin] - arc.costPi && arc.residual > 0.5){      // arc inverse donc cout negatif
+                    d[j] = d[voisin] - arc.costPi;
+                    d[j+size] = d[j];
+                    pred[j] = voisin;
+                    pred[j+size] = j;
+                }
+            }
+        }
+        
+    }
+    if (d[t] > 1e9){
+        return false;
+    }
+    for (int sommet : Temp){
+        d[sommet] = d[t];
+    }
+    return true;
+
+}
 
 
 double graphCM::PCC_successifs (int s, int t, const vector<int> &Topo){      // Applique l'algorithme des plus courts chemins successifs sur le graphe
@@ -444,10 +505,10 @@ double graphCM::PCC_successifs (int s, int t, const vector<int> &Topo){      // 
         vector <double> d(size, std::numeric_limits<double>::infinity());
         vector <int> pred (size, -1);
 
-        if (Dijsktra (s, t, d, pred, Topo)){
+        if (Bellman(s, t, d, pred, Topo)){
 
             // π = π - d
-            for (int i=s; i<t+1; i++){
+            for (int i=0; i<size; i++){
                 potentiel[Topo[i]] -= d[Topo[i]];
             }
 
@@ -462,7 +523,7 @@ double graphCM::PCC_successifs (int s, int t, const vector<int> &Topo){      // 
             //cout << "exces de " << a-size/2 << " : " << exces[a] << endl;
 
         } else {
-            //cout << "Il n'y a pas de chemin allant du sommet " << k << " vers un noeud en déficit : le problème est irréalisable" << endl;
+            //cout << "Il n'y a pas de chemin allant du sommet " << s << " vers un noeud en déficit : le problème est irréalisable" << endl;
             return -1;
         }
 

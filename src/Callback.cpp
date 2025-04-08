@@ -66,6 +66,7 @@ void SeparationCallback::callback () {
         } else if (_version > 3 && (where == GRB_CB_MIPNODE) && (getIntInfo(GRB_CB_MIPNODE_STATUS) == GRB_OPTIMAL)) {       // Solution RL => User Cuts
 
             int s = 0;
+            int ajout = 0;
             bool fin = false;
             
             // On récupère la solution
@@ -78,66 +79,76 @@ void SeparationCallback::callback () {
                     }
                 }
             }
-            /*for (int i=0; i<_size; i++){
+
+            // Affichage de la solution
+            for (int i=0; i<_size; i++){
                 for (int j=0; j<_size; j++){
                     cout << xij[i][j] << " ";
                 }
                 cout << endl;
-            }*/
+            }
             
-            _graphe->restreindre_graphe_CM(xij);
-            // xij deviennent les coûts (réduits?)
-
+            _graphe->GPCC.ajouter_couts(xij);
             // Doubler le graphe pour noeud disjoints => GraphPCC
 
             double demande = 2;
 
-            while (s<_size-1 && !fin){
+            while (s<_size-1 && ajout < 20){
                 int a = _graphe->ordreTopologique[s] + _size;
                 int t = s+1;
 
-                while (t<_size && !fin){
+                while (t<5 && ajout < 20){
                     int b = _graphe->ordreTopologique[t];
-                    _graphe->GPCC.supply[a] = demande;
-                    _graphe->GPCC.supply[b] = -1*demande;
+
+                    if (demande==2){
+                        _graphe->GPCC.supply[a] = demande;
+                        _graphe->GPCC.supply[b] = -1*demande;
+                    }
                     
                     double cost = _graphe->GPCC.PCC_successifs(s, t, _graphe->ordreTopologique);
-                    //cout << "chemin de " << a << " à " << b << ", " << "demande : " << demande << ", coût : " << cost << endl;
+                    cout << "chemin de " << a-_size << " à " << b << ", " << "demande : " << demande << ", coût : " << cost << endl;
                     if (cost < 0){  // Si flot non réalisable, donc pas [demande] chemins noeuds-disjoint
-
+                        
                         t++;
                         demande = 2;
-                        _graphe->GPCC.supply[a] = 0.;
-                        _graphe->GPCC.supply[b] = 0.;
                         _graphe->GPCC.reset_graph();
                         
+                        
                     } else if (cost > demande - 1.0001){     // Si assez de capteurs
-                        //cout << "assez de capteurs" << endl;
+                        cout << "assez de capteurs" << endl;
                         demande ++;
-                        _graphe->GPCC.reset_graph();
+                        _graphe->GPCC.supply[a] = 1;
+                        _graphe->GPCC.supply[b] = 1;
 
                     } else {   // Si contrainte non respectée
 
-                        fin = true;
+                        if (_version > 6){
+                            cout << "test 2" << endl;
+                            demande ++;
+                            _graphe->GPCC.supply[a] = 1;
+                            _graphe->GPCC.supply[b] = 1;
+                        }
+                        
                         GRBLinExpr somme = 0;
 
-                        //cout << "Ajout User" << endl;
+                        cout << "Ajout User" << endl;
                         for (int i=0; i<_size; i++){
                             for (auto &[voisin, arc] : _graphe->GPCC.Graphe[i + _size]){
                                 if (arc.flow > 0.5){
                                     somme += _x[i][voisin];
-                                    //cout << "x[" << i << "][" << voisin << "] + ";
+                                    cout << "x[" << i << "][" << voisin << "] + ";
                                 }
                             }
                         }
-                        //cout << " >= " << demande - 1 << endl;
+                        cout << " >= " << demande - 1 << endl;
 
                         addCut(somme >= demande - 1);
+                        ajout++;
 
-                        if (_version > 6){
-                            fin = false;
-                            demande++;
-                            _graphe->GPCC.reset_graph();
+                        if (_version < 7){
+                            t++;
+                            demande = 2;
+                            _graphe->GPCC.reset_graph(a,b);
                         }
                         
                     }
