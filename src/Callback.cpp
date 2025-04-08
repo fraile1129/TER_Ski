@@ -67,7 +67,6 @@ void SeparationCallback::callback () {
 
             int s = 0;
             int ajout = 0;
-            bool fin = false;
             
             // On récupère la solution
             vector<vector<double>> xij(_size);
@@ -81,32 +80,34 @@ void SeparationCallback::callback () {
             }
 
             // Affichage de la solution
-            for (int i=0; i<_size; i++){
+            /*for (int i=0; i<_size; i++){
                 for (int j=0; j<_size; j++){
                     cout << xij[i][j] << " ";
                 }
                 cout << endl;
-            }
+            }*/
             
             _graphe->GPCC.ajouter_couts(xij);
+            
             // Doubler le graphe pour noeud disjoints => GraphPCC
 
             double demande = 2;
 
-            while (s<_size-1 && ajout < 20){
+            while (s<_size-1 && ajout < 10){
                 int a = _graphe->ordreTopologique[s] + _size;
                 int t = s+1;
 
-                while (t<5 && ajout < 20){
+                while (t<_size && ajout < 10){
                     int b = _graphe->ordreTopologique[t];
 
+                    
                     if (demande==2){
                         _graphe->GPCC.supply[a] = demande;
                         _graphe->GPCC.supply[b] = -1*demande;
                     }
                     
                     double cost = _graphe->GPCC.PCC_successifs(s, t, _graphe->ordreTopologique);
-                    cout << "chemin de " << a-_size << " à " << b << ", " << "demande : " << demande << ", coût : " << cost << endl;
+                    //cout << "chemin de " << a-_size << " à " << b << " =>  demande : " << demande << ", coût : " << cost << endl;
                     if (cost < 0){  // Si flot non réalisable, donc pas [demande] chemins noeuds-disjoint
                         
                         t++;
@@ -115,7 +116,7 @@ void SeparationCallback::callback () {
                         
                         
                     } else if (cost > demande - 1.0001){     // Si assez de capteurs
-                        cout << "assez de capteurs" << endl;
+                        //cout << "assez de capteurs" << endl;
                         demande ++;
                         _graphe->GPCC.supply[a] = 1;
                         _graphe->GPCC.supply[b] = 1;
@@ -123,7 +124,6 @@ void SeparationCallback::callback () {
                     } else {   // Si contrainte non respectée
 
                         if (_version > 6){
-                            cout << "test 2" << endl;
                             demande ++;
                             _graphe->GPCC.supply[a] = 1;
                             _graphe->GPCC.supply[b] = 1;

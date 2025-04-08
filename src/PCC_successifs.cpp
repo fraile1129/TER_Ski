@@ -30,14 +30,13 @@ void add_Arc(graph &G, int begin, int end, double capacity, double cost){       
 void graphCM::ajouter_couts(const vector<vector<double>> &Xij){
     int n = Xij.size();
     for (size_t i=0; i<n; i++){
-        unordered_map<int,Arc> voisins;
+        //unordered_map<int,Arc> voisins;
         for (auto &[voisin, arc] : Graphe[i+n]){
-            Arc a = arc;
-            a.cost = Xij[i][voisin];
-            a.costPi = Xij[i][voisin];
-            voisins[voisin] = a;
+            arc.cost = Xij[i][voisin];
+            arc.costPi = Xij[i][voisin];
+            Graphe[voisin][i+n].cost = -Xij[i][voisin];
+            Graphe[voisin][i+n].costPi = -Xij[i][voisin];
         }
-        Graphe[i+n] = voisins;
     }
 }
 
@@ -151,20 +150,17 @@ void graphCM::symmetrize(){      // Symétrise le graphe
     return G;
 }*/
 
-/*void graphCM::print_graph(){     // Affiche le graphe G
+void graphCM::print_graph(){     // Affiche le graphe G
     for (size_t i=0; i<supply.size(); i++){    // Pour chaque sommet
         cout << endl << "Voisins du sommet " << i << " (supply = " << supply[i] <<  ") :" << endl;
-        for (auto &[voisin, arcs] : Graphe[i]){      // Pour chaque voisin
+        for (auto &[voisin, arc] : Graphe[i]){      // Pour chaque voisin
         
-            cout << "   sommet " << voisin << " :" << endl;
-            for (auto &arc : arcs){     // Pour chaque arc allant vers ce voisin
-                cout << "       capacité : " << arc.capacity << ", résidu : " << arc.residual << ", coût : " << arc.cost  << ", coût réduit : " << arc.costPi << ", flot : " << arc.flow << endl;
-            }
-            cout << endl;
+            cout << "   sommet " << voisin << " : capacité : " << arc.capacity << ", résidu : " << arc.residual << ", coût : " << arc.cost  << ", coût réduit : " << arc.costPi << ", flot : " << arc.flow << endl;
+            
         }
     }
     cout << endl << endl << endl;
-}*/
+}
 
 int graphCM::indCoutMin(unordered_set<int> &noeuds, vector<double> &distances){     // Renvoie l'indice du noeud temporaire dont la valeur dans le vecteur de distances est minimum
 
@@ -366,7 +362,6 @@ void graphCM::miseAJour(int s, int t, vector<double> &exces, vector <double> &pi
 
     // Mise à jour des coûts réduits
     for (size_t sommet=0; sommet<2*demi_size; sommet++){     // Pour chaque sommet
-        
         for (auto &[voisin, arc] : Graphe[sommet]){      // Pour chaque voisin
             arc.costPi = arc.cost - pi[sommet] + pi[voisin];
         }
@@ -465,26 +460,34 @@ bool graphCM::Bellman (int s, int t, vector<double> &d, vector<int> &pred, const
     }
 
     d[a] = 0;
+    Temp.erase(a);
+
     for (int i=s+1; i<t+1; i++){
+
         int j = Topo[i];
         Temp.erase(j);
+        
         for (auto &[voisin, arc] : Graphe[j]){
+            
             if (voisin != j+size){   // Parmi les prédécesseurs
-                if (d[j] > d[voisin] - arc.costPi && arc.residual > 0.5){      // arc inverse donc cout negatif
+                
+                if (d[j] > d[voisin] - arc.costPi && Graphe[voisin][j].residual > 0.5){      // arc inverse donc cout negatif
+                    
                     d[j] = d[voisin] - arc.costPi;
                     d[j+size] = d[j];
                     pred[j] = voisin;
                     pred[j+size] = j;
+                    
                 }
             }
         }
         
     }
-    if (d[t] > 1e9){
+    if (d[b] > 1e9){
         return false;
     }
     for (int sommet : Temp){
-        d[sommet] = d[t];
+        d[sommet] = d[b];
     }
     return true;
 
@@ -497,7 +500,7 @@ double graphCM::PCC_successifs (int s, int t, const vector<int> &Topo){      // 
     int a = Topo[s] + size/2;
     int b = Topo[t];
 
-    vector <double> potentiel (size/2, 0.);
+    vector <double> potentiel (size, 0.);
     vector <double> exces = supply;
 
     while (exces[a] > 1e-8){
@@ -505,11 +508,12 @@ double graphCM::PCC_successifs (int s, int t, const vector<int> &Topo){      // 
         vector <double> d(size, std::numeric_limits<double>::infinity());
         vector <int> pred (size, -1);
 
-        if (Bellman(s, t, d, pred, Topo)){
 
+        if (Bellman(s, t, d, pred, Topo)){
+            
             // π = π - d
             for (int i=0; i<size; i++){
-                potentiel[Topo[i]] -= d[Topo[i]];
+                potentiel[i] -= d[i];
             }
 
             double delta = 1.;
@@ -519,8 +523,6 @@ double graphCM::PCC_successifs (int s, int t, const vector<int> &Topo){      // 
 
             // Tout mettre à jour
             miseAJour(s, t, exces, potentiel, delta, Topo);
-
-            //cout << "exces de " << a-size/2 << " : " << exces[a] << endl;
 
         } else {
             //cout << "Il n'y a pas de chemin allant du sommet " << s << " vers un noeud en déficit : le problème est irréalisable" << endl;
