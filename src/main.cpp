@@ -20,8 +20,9 @@ int main(int argc, char *argv[]){
 
     print_graph_cout(graphe.GPCC.Graphe);
 
-    graphe.Resolution(version);
-
+    vector<pair<int, int>> capteurs = graphe.Resolution(version);
+    bool checkGraph = graphe.checker(capteurs);
+    cout << (checkGraph ? "Le graphe passe le checker!" : "Le graphe ne passe pas le checker!" ) << endl;
 
     return 0;
 }

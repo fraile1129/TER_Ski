@@ -8,6 +8,7 @@
 #include <utility>
 #include <sstream>
 #include "gurobi_c++.h" 
+#include <functional>
 
 #include "PCC_successifs.hpp"
 
@@ -33,6 +34,9 @@ public:
     // Modifie GPCC 
     void restreindre_graphe_CM();
 
-    void Resolution(int version);
+    vector<pair<int,int>> Resolution(int version);
+
+    bool checker(vector<pair<int,int>> capteurs);
     
+
 };
