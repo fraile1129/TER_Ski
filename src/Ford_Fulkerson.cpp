@@ -158,7 +158,8 @@ double fordfulkerson(graph &g, int source, int sink, int version) {
       finished = true;
     }
     else {
-      double delta = flow_on_path(g, source, sink, preds);
+      //double delta = flow_on_path(g, source, sink, preds);
+      double delta = 1;
       flow += delta;
       if (flow > 1.5 && version%3 >0 ){   // Pas les versions 3,6,9
         finished = true;
@@ -167,7 +168,7 @@ double fordfulkerson(graph &g, int source, int sink, int version) {
     }
     nb_steps++;
   }
-  //cerr << "Nb steps: " << nb_steps << endl;
+  cerr << "Nb steps: " << nb_steps << endl;
   return flow;
 }
 

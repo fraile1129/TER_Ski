@@ -17,7 +17,8 @@ int main(int argc, char *argv[]){
     int version = stoi(argv[2]);
     filename = "data/" + filename;
     TER_ski graphe(filename);
-
+    graphe.Detection_Flot();
+    
     //print_graph_cout(graphe.GPCC.Graphe);
 
     /*graphCM Gtest;
@@ -46,9 +47,9 @@ int main(int argc, char *argv[]){
     double cost = Gtest.PCC_successifs(0,4,topo);
     cout << cost << endl;*/
 
-    vector<pair<int, int>> capteurs = graphe.Resolution(version);
-    bool checkGraph = graphe.checker(capteurs);
-    cout << (checkGraph ? "Le graphe passe le checker!" : "Le graphe ne passe pas le checker!" ) << endl;
+    //vector<pair<int, int>> capteurs = graphe.Resolution(version);
+    //bool checkGraph = graphe.checker(capteurs);
+    //cout << (checkGraph ? "Le graphe passe le checker!" : "Le graphe ne passe pas le checker!" ) << endl;
 
     return 0;
 }

@@ -260,6 +260,33 @@ vector<pair<int, int>> TER_ski::Resolution(int version)
   return doublons;
 }
 
+void TER_ski::Detection_Flot(){
+
+  vector<vector<double>> xij(size, vector<double> (0));
+
+  restreindre_graphe_FF(xij);
+
+  for (int i=0; i<size-1; i++){
+    for (int j=i+1; j<size; j++){
+      int s = ordreTopologique[i] + size;
+      int t = ordreTopologique[j];
+      double flot = fordfulkerson(GFord, s, t, 1);
+      if (flot > 1.5){
+        F.emplace_back(s,t);
+        cout << s << " " << t << endl;
+      }
+    }
+  }
+  for (auto [s,t] : F){
+    cout << s << " " << t << endl;
+  }
+}
+
+vector<pair<int, int>> TER_ski::Resolution_compact()
+{
+  cout << "a faire" << endl;
+}
+
 bool TER_ski::checker(vector<pair<int, int>> capteurs)
 {
   print_graph(Graphe);
@@ -340,3 +367,4 @@ bool TER_ski::checker(vector<pair<int, int>> capteurs)
 
   return true;
 }
+

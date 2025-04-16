@@ -23,6 +23,7 @@ public:
     graph GFord;
     vector<int> ordreTopologique;
     graphCM GPCC;
+    vector<pair<int,int>> F;
 
     TER_ski(string filename);
 
@@ -35,6 +36,10 @@ public:
     void restreindre_graphe_CM();
 
     vector<pair<int,int>> Resolution(int version);
+
+    void Detection_Flot();
+
+    vector<pair<int,int>> Resolution_compact();
 
     bool checker(vector<pair<int,int>> capteurs);
     
