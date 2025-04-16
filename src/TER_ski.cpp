@@ -55,6 +55,7 @@ TER_ski::TER_ski(string filename)
 
 void TER_ski::restreindre_graphe_FF(const vector<vector<double>> &Xij) // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
 {
+
   int size = Graphe.size();
   GFord.resize(0);
   GFord.resize(2 * size);
@@ -151,7 +152,7 @@ void TER_ski::triTopologique()
 
 vector<pair<int, int>> TER_ski::Resolution(int version)
 {
-  vector<pair<int, int>> doublons;
+  vector<pair<int, int>> res;
 
   vector<vector<GRBVar>> x(size);
   // try{
@@ -233,7 +234,7 @@ vector<pair<int, int>> TER_ski::Resolution(int version)
           if (x[i][j].get(GRB_DoubleAttr_X) >= 1e-4)
           {
             cout << "On pose un capteur sur l'arc (" << i << ", " << j << ")" << endl;
-            doublons.emplace_back(i, j);
+            res.emplace_back(i, j);
           }
         }
       }
@@ -257,12 +258,12 @@ vector<pair<int, int>> TER_ski::Resolution(int version)
   } catch(...) {
     cout << "Exception during optimization" << endl;
   }*/
-  return doublons;
+  return res;
 }
 
 void TER_ski::Detection_Flot(){
 
-  vector<vector<double>> xij(size, vector<double> (0));
+  vector<vector<double>> xij(size, vector<double> (size,0));
 
   restreindre_graphe_FF(xij);
 
@@ -272,29 +273,184 @@ void TER_ski::Detection_Flot(){
       int t = ordreTopologique[j];
       double flot = fordfulkerson(GFord, s, t, 1);
       if (flot > 1.5){
-        F.emplace_back(s,t);
-        cout << s << " " << t << endl;
+        F.emplace_back(s-size,t);
       }
+      reset_graph(GFord);
     }
-  }
-  for (auto [s,t] : F){
-    cout << s << " " << t << endl;
   }
 }
 
 vector<pair<int, int>> TER_ski::Resolution_compact()
 {
-  cout << "a faire" << endl;
+  Detection_Flot();  // Déterminer l'ensemble F
+
+  vector<vector<GRBVar>> alpha(size, vector<GRBVar> (size));
+  vector<vector<GRBVar>> beta(size, vector<GRBVar> (size));
+  vector<vector<vector<GRBVar>>> pi(size, vector<vector<GRBVar>> (size, vector<GRBVar> (size)));
+  vector<vector<vector<vector<GRBVar>>>> gamma(size, vector<vector<vector<GRBVar>>> (size, vector<vector<GRBVar>> (size, vector<GRBVar> (size))));
+  vector<vector<GRBVar>> x(size, vector<GRBVar> (size));
+
+  vector<pair<int, int>> res; // vecteur & retourner?
+
+  //  --- Creation of the Gurobi environment ---
+  cout << "--> Creating the Gurobi environment" << endl;
+  GRBEnv env = GRBEnv(true);
+  // env.set("LogFile", "mip1.log"); ///< prints the log in a file
+  env.start();
+
+  // --- Creation of the Gurobi model ---
+  cout << "--> Creating the Gurobi model" << endl;
+  GRBModel model = GRBModel(env);
+
+  // --- Creation of the variables ---
+  cout << "--> Creating the variables" << endl;
+  int s, t, i, j;
+
+  // x
+  for (size_t i = 0; i < size; ++i)
+  {
+    //x[i].resize(size);
+    for (size_t j = 0; j < size; ++j)
+    {
+      if (Graphe[i].contains(j))
+      {
+        stringstream ss;
+        ss << "x(" << i << "," << j << ")" << endl;
+        x[i][j] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, ss.str());
+      }
+    }
+  }
+
+  // --- Variables alpha, beta, pi, gamma ---
+  for (size_t f = 0; f < F.size(); ++f)
+  {
+    int s = F[f].first;
+    int t = F[f].second;
+    
+    stringstream sa, sb;
+    sa << "alpha(" << s << "," << t << ")";
+    sb << "beta(" << s << "," << t << ")";
+    alpha[s][t] = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, sa.str());
+    beta[s][t] = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, sb.str());
+    
+    for (int i = 0; i < size; ++i)
+    {
+      stringstream spi;
+      spi << "pi(" << s << "," << t << "," << i << ")";
+      pi[s][t][i] = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, spi.str());
+
+      for (auto &[j,arc] : Graphe[i])
+      {
+        if (i != t && j != s)
+        {
+          stringstream sg;
+          sg << "gamma(" << s << "," << t << "," << i << "," << j << ")";
+          gamma[s][t][i][j] = model.addVar(0.0, GRB_INFINITY, 0.0, GRB_CONTINUOUS, sg.str());
+        }
+      }
+    }
+  }
+
+  // --- Creation of the objective function ---
+  cout << "--> Creating the objective function" << endl;
+  GRBLinExpr obj = 0;
+  for (size_t i = 0; i < size; ++i)
+  {
+    for (size_t j = 0; j < size; ++j)
+    {
+      if (Graphe[i].contains(j))
+      {
+        obj += x[i][j];
+      }
+    }
+  }
+  model.setObjective(obj, GRB_MINIMIZE);
+
+  // --- Contraintes ---
+
+  for (size_t f = 0; f < F.size(); ++f)
+  {
+    s = F[f].first;
+    t = F[f].second;
+    GRBLinExpr contrainte = 2 * alpha[s][t] - 2 * beta[s][t];
+    for (int i = 0; i < size; ++i)
+    {
+      for (auto &[j,arc] : Graphe[i])
+      {
+        if (i != t && j != s)
+        {
+          //int idx = i * size + j;
+          contrainte += gamma[s][t][i][j];
+          model.addConstr(pi[s][t][i] - pi[s][t][j] - gamma[s][t][i][j] - x[i][j] <= 0);
+        }
+      }
+    }
+    model.addConstr(contrainte >= 1);
+  }
+
+  // Optimize model
+  // --- Solver configuration ---
+  cout << "--> Configuring the solver" << endl;
+  model.set(GRB_DoubleParam_TimeLimit, 600.0); //< sets the time limit (in seconds)
+  model.set(GRB_IntParam_Threads, 1);          //< limits the solver to single thread usage
+
+  // --- Solver launch ---
+  cout << "--> Running the solver" << endl;
+  model.optimize();
+  model.write("model.lp"); //< Writes the model in a file
+
+  // --- Solver results retrieval ---
+  cout << "--> Retrieving solver results " << endl;
+
+  int status = model.get(GRB_IntAttr_Status);
+  if (status == GRB_OPTIMAL || (status == GRB_TIME_LIMIT && model.get(GRB_IntAttr_SolCount) > 0))
+  {
+    // the solver has computed the optimal solution or a feasible solution (when the time limit is reached before proving optimality)
+    cout << "Succes! (Status: " << status << ")" << endl; //< prints the solver status (see the gurobi documentation)
+    cout << "Runtime : " << model.get(GRB_DoubleAttr_Runtime) << " seconds" << endl;
+
+    cout << "--> Printing results " << endl;
+    // model.write("solution.sol"); //< Writes the solution in a file
+    cout << "Objective value = " << model.get(GRB_DoubleAttr_ObjVal) << endl; //<gets the value of the objective function for the best computed solution (optimal if no time limit)
+    for (size_t i = 0; i < size; ++i)
+    {
+      for (size_t j = 0; j < size; ++j)
+      {
+        if (Graphe[i].contains(j))
+        {
+          if (x[i][j].get(GRB_DoubleAttr_X) >= 1e-4)
+          {
+            cout << "On pose un capteur sur l'arc (" << i << ", " << j << ")" << endl;
+            res.emplace_back(i, j);
+          }
+        }
+      }
+    }
+
+    for (const auto &[i, j] : doublons)
+    {
+      cout << "On pose un capteur sur l'arc (" << i << ", " << j << "), doublon" << endl;
+    }
+  }
+
+  else
+  {
+    // the model is infeasible (maybe wrong) or the solver has reached the time limit without finding a feasible solution
+    cerr << "Fail! (Status: " << status << ")" << endl; //< see status page in the Gurobi documentation
+  }
+  return res;
 }
+
+
 
 bool TER_ski::checker(vector<pair<int, int>> capteurs)
 {
-  print_graph(Graphe);
+  //print_graph(Graphe);
   for (auto &[i, j] : capteurs)
   {
     Graphe[i].erase(j);
   }
-  print_graph(Graphe);
+  //print_graph(Graphe);
 
   // créée deux listes avec les noeuds de départ et d'arrivée
   vector<int> source;
@@ -310,7 +466,7 @@ bool TER_ski::checker(vector<pair<int, int>> capteurs)
       source.push_back(i);
     }
   }
-  cout << "Source : ";
+  /*cout << "Source : ";
   for (auto &s : source)
   {
     cout << s << " ";
@@ -321,7 +477,7 @@ bool TER_ski::checker(vector<pair<int, int>> capteurs)
   {
     cout << s << " ";
   }
-  cout << endl;
+  cout << endl;*/
 
   function<int(int, int, unordered_set<int> &)> count_paths =
       [&](int current, int target, unordered_set<int> &visited) -> int
