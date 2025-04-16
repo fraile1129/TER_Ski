@@ -284,13 +284,13 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
 {
   Detection_Flot();  // Déterminer l'ensemble F
 
-  vector<vector<GRBVar>> alpha(size, vector<GRBVar> (size));
-  vector<vector<GRBVar>> beta(size, vector<GRBVar> (size));
+  //vector<vector<GRBVar>> alpha(size, vector<GRBVar> (size));
+  //vector<vector<GRBVar>> beta(size, vector<GRBVar> (size));
   vector<vector<vector<GRBVar>>> pi(size, vector<vector<GRBVar>> (size, vector<GRBVar> (size)));
   vector<vector<vector<vector<GRBVar>>>> gamma(size, vector<vector<vector<GRBVar>>> (size, vector<vector<GRBVar>> (size, vector<GRBVar> (size))));
   vector<vector<GRBVar>> x(size, vector<GRBVar> (size));
 
-  vector<pair<int, int>> res; // vecteur & retourner?
+  vector<pair<int, int>> res; // vecteur à retourner
 
   //  --- Creation of the Gurobi environment ---
   cout << "--> Creating the Gurobi environment" << endl;
@@ -327,11 +327,11 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
     int s = F[f].first;
     int t = F[f].second;
     
-    stringstream sa, sb;
-    sa << "alpha(" << s << "," << t << ")";
-    sb << "beta(" << s << "," << t << ")";
-    alpha[s][t] = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, sa.str());
-    beta[s][t] = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, sb.str());
+    // stringstream sa, sb;
+    // sa << "alpha(" << s << "," << t << ")";
+    // sb << "beta(" << s << "," << t << ")";
+    // alpha[s][t] = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, sa.str());
+    // beta[s][t] = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, sb.str());
     
     for (int i = 0; i < size; ++i)
     {
@@ -368,11 +368,11 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
 
   // --- Contraintes ---
 
-  for (size_t f = 0; f < F.size(); ++f)
+  for (auto &[s,t] : F)
   {
-    s = F[f].first;
-    t = F[f].second;
-    GRBLinExpr contrainte = 2 * alpha[s][t] - 2 * beta[s][t];
+    // s = F[f].first;
+    // t = F[f].second;
+    GRBLinExpr contrainte = 2 * pi[s][t][s] - 2 * pi[s][t][t];
     for (int i = 0; i < size; ++i)
     {
       for (auto &[j,arc] : Graphe[i])
@@ -380,7 +380,7 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
         if (i != t && j != s)
         {
           //int idx = i * size + j;
-          contrainte += gamma[s][t][i][j];
+          contrainte -= gamma[s][t][i][j];
           model.addConstr(pi[s][t][i] - pi[s][t][j] - gamma[s][t][i][j] - x[i][j] <= 0);
         }
       }
@@ -397,7 +397,7 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
   // --- Solver launch ---
   cout << "--> Running the solver" << endl;
   model.optimize();
-  model.write("model.lp"); //< Writes the model in a file
+  // model.write("model.lp"); //< Writes the model in a file
 
   // --- Solver results retrieval ---
   cout << "--> Retrieving solver results " << endl;
