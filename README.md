@@ -1,8 +1,21 @@
-# TER_Ski
+# 🎿 TER_Ski
 
-to run solver : 
+## ▶️ Exécuter le solveur
 
+Rends d'abord le script exécutable :
+
+```bash
 chmod +x run_solver.sh
+```
 
-./run_solver.sh 0   # pour le modèle compact
-./run_solver.sh 2   # pour le modèle normal
+Puis lance le solveur avec le modèle souhaité :
+
+Modèle compact :
+```bash
+./run_solver.sh 0
+```
+
+Modèle normal :
+```bash
+./run_solver.sh 2
+```
