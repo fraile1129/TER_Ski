@@ -2,6 +2,8 @@
 
 ## ▶️ Exécuter le solveur
 
+Faut aussi ajouter les instances dans data
+
 Rends d'abord le script exécutable :
 
 ```bash
