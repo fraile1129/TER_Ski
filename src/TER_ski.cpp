@@ -14,7 +14,25 @@ TER_ski::TER_ski(string filename)
     size = -1;
     return;
   }
-
+  int numNodes, numEdges;
+  inf >> numNodes >> numEdges;
+  Graphe.resize(numNodes);
+  int node1, node2;
+  while(inf >> node1 >> node2){
+    if(Graphe[node1].find(node2) != Graphe[node1].end()){
+      doublons.emplace_back(node1, node2);
+    }else{
+      Arc arc;
+      arc.capacity = 1.0;
+      arc.flow = 0.0;
+      arc.residual = arc.capacity;
+      arc.cost = 0.0;
+      arc.costPi = 0.0;
+      Graphe[node1][node2] = arc;
+    }
+  }
+  
+  /*
   string temp = "a";
   int numNodes = -1;
   while (inf >> temp)
@@ -47,11 +65,14 @@ TER_ski::TER_ski(string filename)
       }
     }
   }
+    */
+  
   size = numNodes;
   inf.close();
   triTopologique();
   restreindre_graphe_CM();
 }
+
 
 void TER_ski::restreindre_graphe_FF(const vector<vector<double>> &Xij) // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
 {
