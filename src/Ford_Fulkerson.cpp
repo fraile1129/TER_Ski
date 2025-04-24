@@ -168,7 +168,7 @@ double fordfulkerson(graph &g, int source, int sink, int version) {
     }
     nb_steps++;
   }
-  cerr << "Nb steps: " << nb_steps << endl;
+  // cerr << "Nb steps: " << nb_steps << endl;
   return flow;
 }
 
