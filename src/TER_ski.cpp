@@ -14,6 +14,7 @@ TER_ski::TER_ski(string filename)
     size = -1;
     return;
   }
+  /*
   int numNodes, numEdges;
   inf >> numNodes >> numEdges;
   Graphe.resize(numNodes);
@@ -31,8 +32,9 @@ TER_ski::TER_ski(string filename)
       Graphe[node1][node2] = arc;
     }
   }
+  */
   
-  /*
+  
   string temp = "a";
   int numNodes = -1;
   while (inf >> temp)
@@ -65,7 +67,7 @@ TER_ski::TER_ski(string filename)
       }
     }
   }
-    */
+    
   
   size = numNodes;
   inf.close();
@@ -463,22 +465,20 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
 }
 
 
-
 bool TER_ski::checker(vector<pair<int, int>> capteurs)
 {
-  //print_graph(Graphe);
+  // Supprimer les arcs avec capteurs
   for (auto &[i, j] : capteurs)
   {
     Graphe[i].erase(j);
   }
-  //print_graph(Graphe);
 
-  // créée deux listes avec les noeuds de départ et d'arrivée
+  // Création des listes sources et puits
   vector<int> source;
   vector<int> sink;
   for (int i = 0; i < size; ++i)
   {
-    if (Graphe[i].size() == 0)
+    if (Graphe[i].empty())
     {
       sink.push_back(i);
     }
@@ -487,56 +487,62 @@ bool TER_ski::checker(vector<pair<int, int>> capteurs)
       source.push_back(i);
     }
   }
-  /*cout << "Source : ";
-  for (auto &s : source)
-  {
-    cout << s << " ";
-  }
-  cout << endl;
-  cout << "Sink : ";
-  for (auto &s : sink)
-  {
-    cout << s << " ";
-  }
-  cout << endl;*/
 
-  function<int(int, int, unordered_set<int> &)> count_paths =
-      [&](int current, int target, unordered_set<int> &visited) -> int
+  // Fonction récursive pour trouver tous les chemins jusqu'à 2
+  function<void(int, int, unordered_set<int> &, vector<int> &, vector<vector<int>> &)> find_paths;
+  find_paths = [&](int current, int target, unordered_set<int> &visited, vector<int> &path, vector<vector<int>> &foundPaths)
   {
-    if (current == target)
-      return 1;
+    if (foundPaths.size() >= 2) return;
 
     visited.insert(current);
-    int count = 0;
+    path.push_back(current);
 
-    for (auto &neighbor : Graphe[current])
+    if (current == target)
     {
-      if (visited.find(neighbor.first) == visited.end())
-
+      foundPaths.push_back(path);
+    }
+    else
+    {
+      for (auto &[neighbor, arc] : Graphe[current])
       {
-        count += count_paths(neighbor.first, target, visited);
-
-        if (count > 1)
-          return count; // early stop
+        if (visited.find(neighbor) == visited.end())
+        {
+          find_paths(neighbor, target, visited, path, foundPaths);
+        }
       }
     }
 
+    path.pop_back();
     visited.erase(current);
-    return count;
   };
 
-  // Pour chaque source, on compte les chemins vers chaque sink
+  // Recherche des chemins
   for (int s : source)
   {
     for (int t : sink)
     {
       if (s == t)
         continue;
+
       unordered_set<int> visited;
-      int paths = count_paths(s, t, visited);
-      if (paths > 1)
+      vector<int> path;
+      vector<vector<int>> foundPaths;
+
+      find_paths(s, t, visited, path, foundPaths);
+
+      if (foundPaths.size() > 1)
       {
-        cout << "Plusieurs chemins entre " << s << " et " << t << endl;
+        cout << "Plusieurs chemins entre " << s << " et " << t << " :" << endl;
+        for (const auto &p : foundPaths)
+        {
+          cout << "Chemin : ";
+          for (size_t i = 0; i < p.size(); ++i)
+          {
+            cout << p[i];
+            if (i < p.size() - 1) cout << " -> ";
+          }
+          cout << endl;
+        }
         return false;
       }
     }
@@ -546,87 +552,94 @@ bool TER_ski::checker(vector<pair<int, int>> capteurs)
 }
 
 
-
 vector<pair<int, int>> TER_ski::find_solution_realisable()
 {
-  graph G = Graphe;
+    graph G = Graphe;
 
-  // arcs à retirer
-  vector<pair<int, int>> capteurs;
+    // arcs à retirer (capteurs)
+    vector<pair<int, int>> capteurs;
 
-  vector<int> sources, sinks;
-  for (int i = 0; i < size; ++i)
-  {
-    if (G[i].empty())
+    // Détection des sources et puits
+    vector<int> sources, sinks;
+    for (int i = 0; i < size; ++i)
     {
-      sinks.push_back(i);
-    }
-    else
-    {
-      sources.push_back(i);
-    }
-  }
-
-  // Fonction récursive pour compter les chemins de s à t
-  function<int(int, int, unordered_set<int> &, vector<pair<int, int>> &)> count_paths;
-  count_paths = [&](int current, int target, unordered_set<int> &visited, vector<pair<int, int>> &path) -> int
-  {
-    if (current == target)
-      return 1;
-
-    visited.insert(current);
-    int count = 0;
-
-    for (const auto &neighbor : G[current])
-    {
-      if (visited.find(neighbor.first) == visited.end())
-      {
-        path.emplace_back(current, neighbor.first);
-        count += count_paths(neighbor.first, target, visited, path);
-        if (count > 1)
-          return count;
-        if (count == 0)
-          path.pop_back();
-      }
-    }
-    visited.erase(current);
-    return count;
-  };
-
-  bool changed = true;
-  while (changed)
-  {
-    changed = false;
-
-    for (int s : sources)
-    {
-      for (int t : sinks)
-      {
-        if (s == t)
-          continue;
-
-        unordered_set<int> visited;
-        vector<pair<int, int>> path;
-        int paths = count_paths(s, t, visited, path);
-
-        if (paths > 1 && !path.empty())
+        if (G[i].empty())
         {
-          // Choisir un arc du chemin et l'enlever (placer capteur)
-          pair<int, int> arc_to_cut = path.back();
-          if (G[arc_to_cut.first].count(arc_to_cut.second))
-          {
-            G[arc_to_cut.first].erase(arc_to_cut.second);
-            capteurs.push_back(arc_to_cut);
-            changed = true;
-            break;
-          }
+            sinks.push_back(i);
         }
-      }
-      if (changed)
-        break;
+        else
+        {
+            sources.push_back(i);
+        }
     }
-  }
 
-  return capteurs;
+    // Fonction récursive pour compter les chemins entre s et t (max 2)
+    function<int(int, int, unordered_set<int> &, vector<pair<int, int>> &)> count_paths;
+    count_paths = [&](int current, int target, unordered_set<int> &visited, vector<pair<int, int>> &path) -> int
+    {
+        if (current == target)
+            return 1;
+
+        if (visited.count(current))
+            return 0;
+
+        visited.insert(current);
+        int count = 0;
+
+        for (const auto &neighbor : G[current])
+        {
+            if (visited.count(neighbor.first)) continue;
+
+            path.emplace_back(current, neighbor.first);
+            count += count_paths(neighbor.first, target, visited, path);
+            if (count >= 2)
+            {
+                visited.erase(current);
+                return count; // arrêt anticipé
+            }
+            path.pop_back(); // backtrack
+        }
+
+        visited.erase(current);
+        return count;
+    };
+
+    // Boucle principale pour casser les multipaths
+    bool changed = true;
+    while (changed)
+    {
+        changed = false;
+
+        for (int s : sources)
+        {
+            for (int t : sinks)
+            {
+                if (s == t)
+                    continue;
+
+                unordered_set<int> visited;
+                vector<pair<int, int>> path;
+                int paths = count_paths(s, t, visited, path);
+                cout << "Nombre de chemins de " << s << " à " << t << " : " << paths << endl;
+
+                if (paths >= 2 && !path.empty())
+                {
+                    // Couper un arc du milieu du chemin
+                    pair<int, int> arc_to_cut = path[path.size() / 2];
+                    if (G[arc_to_cut.first].count(arc_to_cut.second))
+                    {
+                        cout << "Suppression de l'arc : " << arc_to_cut.first << " -> " << arc_to_cut.second << endl;
+                        G[arc_to_cut.first].erase(arc_to_cut.second);
+                        capteurs.push_back(arc_to_cut);
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+            if (changed)
+                break;
+        }
+    }
+
+    return capteurs;
 }
-

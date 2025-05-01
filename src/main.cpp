@@ -17,8 +17,6 @@ int main(int argc, char *argv[]){
     int version = stoi(argv[2]);
     filename = "data/" + filename;
     TER_ski graphe(filename);
-
-    
     
     //print_graph_cout(graphe.GPCC.Graphe);
 
@@ -49,6 +47,7 @@ int main(int argc, char *argv[]){
     cout << cost << endl;*/
 
     vector<pair<int, int>> capteurs;
+    /*
     if (version == 0){
         capteurs = graphe.Resolution_compact();
     } else {
@@ -56,6 +55,24 @@ int main(int argc, char *argv[]){
     }
     bool checkGraph = graphe.checker(capteurs);
     cout << (checkGraph ? "Le graphe passe le checker!" : "Le graphe ne passe pas le checker!" ) << endl;
+    */
+    
+    capteurs = graphe.find_solution_realisable();
+    // add the doublons
+    for (const auto& doublon : graphe.doublons) {
+        capteurs.push_back(doublon);
+        cout << "Doublon trouvé et ajouté : (" << doublon.first << ", " << doublon.second << ")" << endl;
+    }
+    cout << "Capteurs installés sur les arcs suivants :" << endl;
+    for (const auto& [u, v] : capteurs) {
+        cout << "(" << u << ", " << v << ")" << endl;
+    }
+    
 
+    if (graphe.checker(capteurs)) {
+        cout << "Solution réalisable trouvée avec " << capteurs.size() << " capteurs." << endl;
+    } else {
+        cout << "Échec de la validation de la solution." << endl;
+    }
     return 0;
 }
