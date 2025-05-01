@@ -42,6 +42,7 @@ public:
     vector<pair<int,int>> Resolution_compact();
 
     bool checker(vector<pair<int,int>> capteurs);
-    
+
+    vector<pair<int, int>> find_solution_realisable();   
 
 };
