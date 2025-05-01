@@ -545,3 +545,88 @@ bool TER_ski::checker(vector<pair<int, int>> capteurs)
   return true;
 }
 
+
+
+vector<pair<int, int>> TER_ski::find_solution_realisable()
+{
+  graph G = Graphe;
+
+  // arcs à retirer
+  vector<pair<int, int>> capteurs;
+
+  vector<int> sources, sinks;
+  for (int i = 0; i < size; ++i)
+  {
+    if (G[i].empty())
+    {
+      sinks.push_back(i);
+    }
+    else
+    {
+      sources.push_back(i);
+    }
+  }
+
+  // Fonction récursive pour compter les chemins de s à t
+  function<int(int, int, unordered_set<int> &, vector<pair<int, int>> &)> count_paths;
+  count_paths = [&](int current, int target, unordered_set<int> &visited, vector<pair<int, int>> &path) -> int
+  {
+    if (current == target)
+      return 1;
+
+    visited.insert(current);
+    int count = 0;
+
+    for (const auto &neighbor : G[current])
+    {
+      if (visited.find(neighbor.first) == visited.end())
+      {
+        path.emplace_back(current, neighbor.first);
+        count += count_paths(neighbor.first, target, visited, path);
+        if (count > 1)
+          return count;
+        if (count == 0)
+          path.pop_back();
+      }
+    }
+    visited.erase(current);
+    return count;
+  };
+
+  bool changed = true;
+  while (changed)
+  {
+    changed = false;
+
+    for (int s : sources)
+    {
+      for (int t : sinks)
+      {
+        if (s == t)
+          continue;
+
+        unordered_set<int> visited;
+        vector<pair<int, int>> path;
+        int paths = count_paths(s, t, visited, path);
+
+        if (paths > 1 && !path.empty())
+        {
+          // Choisir un arc du chemin et l'enlever (placer capteur)
+          pair<int, int> arc_to_cut = path.back();
+          if (G[arc_to_cut.first].count(arc_to_cut.second))
+          {
+            G[arc_to_cut.first].erase(arc_to_cut.second);
+            capteurs.push_back(arc_to_cut);
+            changed = true;
+            break;
+          }
+        }
+      }
+      if (changed)
+        break;
+    }
+  }
+
+  return capteurs;
+}
+
