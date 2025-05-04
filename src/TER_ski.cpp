@@ -643,3 +643,81 @@ vector<pair<int, int>> TER_ski::find_solution_realisable()
 
     return capteurs;
 }
+
+vector<int> TER_ski::trouverSources() {
+        int n = Graphe.size();
+        vector<int> inDegree(n, 0);
+    
+        for (int u = 0; u < n; ++u) {
+            for (const auto& [v, arc] : Graphe[u]) {
+                inDegree[v]++;
+            }
+        }
+    
+        vector<int> sources;
+        for (int i = 0; i < n; ++i) {
+            if (inDegree[i] == 0) {
+                sources.push_back(i);
+            }
+        }
+        return sources;
+    }
+
+    void TER_ski::dfs(int u, graph &G, vector<bool>& vu, arcs_supprimes& ignores, vector<pair<int,int>>&Capteurs, int source) {
+        vu[u] = true;
+        cout << "Visite de " << u << " depuis source " << source << endl;
+    
+        for (auto it = G[u].begin(); it != G[u].end();){
+            int v = it->first;
+            // Si l'ar a déjà été ignoré, on passe au suivant
+            if (ignores[u].count(v)){
+                ++it;
+                continue;
+            }
+
+            if (vu[v]){
+                // On a déjà visité le sommet, on supprime l'arc et on ajoute un capteur
+                ignores[u].insert(v);
+                Capteurs.push_back({u,v});
+                it = G[u].erase(it);
+            } else {
+                dfs(v, G, vu, ignores, Capteurs, source);
+                ++it;
+            }
+        }
+    }
+
+    vector<pair<int,int>> TER_ski::Init_Sol() {
+        // Copie du graphe une seule fois au début
+        graph G = Graphe;
+        vector<pair<int,int>> Capteurs;  // Liste des arêtes supprimées
+    
+        vector<int> sources = trouverSources();
+    
+        cout << "Sources détectées : ";
+        for (int s : sources) cout << s << " ";
+        cout << "\n\n";
+
+        for (int source : sources) {
+            vector<bool> vu(G.size(), false);
+            unordered_map<int, unordered_set<int>> ignores;
+    
+            // Utilise la même copie modifiée du graphe pour toutes les sources
+            dfs(source, G, vu, ignores, Capteurs, source);
+    
+            cout << "--- Arêtes supprimées depuis la source " << source << " ---\n";
+            for (auto& [u, v] : Capteurs) {
+                cout << u << " -> " << v << "\n";
+            }
+            cout << "------------------------------\n";
+        }
+
+        cout << "--- Capteurs placés --- " << endl;;
+        for (auto& [u, v] : Capteurs) {
+            cout << u << " -> " << v << "\n";
+        }
+        cout << "------------------------------" << endl;
+
+        return Capteurs;  // Retourner le vecteur des arêtes supprimées
+    }
+
