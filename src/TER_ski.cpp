@@ -229,7 +229,23 @@ vector<pair<int, int>> TER_ski::Resolution(int version)
   cout << "--> Configuring the solver" << endl;
   model.set(GRB_DoubleParam_TimeLimit, 600.0); //< sets the time limit (in seconds)
   model.set(GRB_IntParam_Threads, 1);          //< limits the solver to single thread usage
-
+  if (version > 10){
+    vector<pair<int,int>> start = Init_Sol();
+    for (size_t i = 0; i < size; ++i)
+    {
+      for (size_t j = 0; j < size; ++j)
+      {
+        if (Graphe[i].contains(j))
+        {
+          x[i][j].set(GRB_DoubleAttr_Start, 0.0);
+        }
+      }
+    }
+    for (auto &[i,j] : start){
+      x[i][j].set(GRB_DoubleAttr_Start, 1.0);
+    }
+  }
+  
   // --- Solver launch ---
   cout << "--> Running the solver" << endl;
   model.optimize();
@@ -305,10 +321,10 @@ void TER_ski::Detection_Flot(){
 
 vector<pair<int, int>> TER_ski::Resolution_compact()
 {
+  cout << "Calcul ensemble I" << endl;
   Detection_Flot();  // Déterminer l'ensemble F
 
-  //vector<vector<GRBVar>> alpha(size, vector<GRBVar> (size));
-  //vector<vector<GRBVar>> beta(size, vector<GRBVar> (size));
+  cout << "Creating variables" << endl;
   vector<vector<vector<GRBVar>>> pi(size, vector<vector<GRBVar>> (size, vector<GRBVar> (size)));
   vector<vector<vector<vector<GRBVar>>>> gamma(size, vector<vector<vector<GRBVar>>> (size, vector<vector<GRBVar>> (size, vector<GRBVar> (size))));
   vector<vector<GRBVar>> x(size, vector<GRBVar> (size));
@@ -349,12 +365,6 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
   {
     int s = F[f].first;
     int t = F[f].second;
-    
-    // stringstream sa, sb;
-    // sa << "alpha(" << s << "," << t << ")";
-    // sb << "beta(" << s << "," << t << ")";
-    // alpha[s][t] = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, sa.str());
-    // beta[s][t] = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, sb.str());
     
     for (int i = 0; i < size; ++i)
     {
@@ -416,7 +426,23 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
   cout << "--> Configuring the solver" << endl;
   model.set(GRB_DoubleParam_TimeLimit, 600.0); //< sets the time limit (in seconds)
   model.set(GRB_IntParam_Threads, 1);          //< limits the solver to single thread usage
-
+  if (version < 1){
+    vector<pair<int,int>> start = Init_Sol();
+    for (size_t i = 0; i < size; ++i)
+    {
+      for (size_t j = 0; j < size; ++j)
+      {
+        if (Graphe[i].contains(j))
+        {
+          x[i][j].set(GRB_DoubleAttr_Start, 0.0);
+        }
+      }
+    }
+    for (auto &[i,j] : start){
+      x[i][j].set(GRB_DoubleAttr_Start, 1.0);
+    }
+  }
+  
   // --- Solver launch ---
   cout << "--> Running the solver" << endl;
   model.optimize();
@@ -434,7 +460,7 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
 
     cout << "--> Printing results " << endl;
     // model.write("solution.sol"); //< Writes the solution in a file
-    cout << "Objective value = " << model.get(GRB_DoubleAttr_ObjVal) << endl; //<gets the value of the objective function for the best computed solution (optimal if no time limit)
+    cout << "Objective value = " << model.get(GRB_DoubleAttr_ObjVal) + doublons.size() << endl; //<gets the value of the objective function for the best computed solution (optimal if no time limit)
     for (size_t i = 0; i < size; ++i)
     {
       for (size_t j = 0; j < size; ++j)
