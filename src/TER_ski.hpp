@@ -12,7 +12,7 @@
 
 #include "PCC_successifs.hpp"
 
-
+typedef unordered_map<int, unordered_set<int>> arcs_supprimes;
 
 class TER_ski
 {
