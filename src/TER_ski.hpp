@@ -45,4 +45,11 @@ public:
 
     vector<pair<int, int>> find_solution_realisable();   
 
+
+    vector<int> trouverSources();
+
+    void dfs(int u, graph &G, vector<bool>& vu, arcs_supprimes& ignores, vector<pair<int,int>>&Capteurs, int source);
+
+    vector<pair<int,int>> Init_Sol();
+
 };
