@@ -39,7 +39,7 @@ public:
 
     void Detection_Flot();
 
-    vector<pair<int,int>> Resolution_compact();
+    vector<pair<int,int>> Resolution_compact(int version);
 
     bool checker(vector<pair<int,int>> capteurs);
 
