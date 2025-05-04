@@ -63,7 +63,7 @@ void SeparationCallback::callback () {
                 }
                 s++;
             }
-        } else if (_version > 3 && (where == GRB_CB_MIPNODE) && (getIntInfo(GRB_CB_MIPNODE_STATUS) == GRB_OPTIMAL)) {       // Solution RL => User Cuts
+        } else if (_version < 10 && _version > 3 && (where == GRB_CB_MIPNODE) && (getIntInfo(GRB_CB_MIPNODE_STATUS) == GRB_OPTIMAL)) {       // Solution RL => User Cuts
 
             int s = 0;
             int ajout = 0;
