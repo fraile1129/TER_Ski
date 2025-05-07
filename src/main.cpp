@@ -3,12 +3,6 @@
 
 int main(int argc, char *argv[]){
 
-    if (argc==1){
-
-        
-
-    }
-
     if (argc < 3){
         cerr << "Passez un fichier et une version en argument!" << endl;
         return 1;
@@ -47,17 +41,21 @@ int main(int argc, char *argv[]){
     cout << cost << endl;*/
 
     vector<pair<int, int>> capteurs;
-    /*
-    if (version == 0){
-        capteurs = graphe.Resolution_compact();
+
+    
+    string fres = "test.txt";
+
+    
+    if (version < 1){
+        capteurs = graphe.Resolution_compact(version,fres);
     } else {
-        capteurs = graphe.Resolution(version);
+        capteurs = graphe.Resolution(version,fres);
     }
     bool checkGraph = graphe.checker(capteurs);
     cout << (checkGraph ? "Le graphe passe le checker!" : "Le graphe ne passe pas le checker!" ) << endl;
-    */
     
-    capteurs = graphe.find_solution_realisable();
+    
+    /*capteurs = graphe.Init_Sol();
     // add the doublons
     for (const auto& doublon : graphe.doublons) {
         capteurs.push_back(doublon);
@@ -66,11 +64,11 @@ int main(int argc, char *argv[]){
     cout << "Capteurs installés sur les arcs suivants :" << endl;
     for (const auto& [u, v] : capteurs) {
         cout << "(" << u << ", " << v << ")" << endl;
-    }
+    }*/
     
 
     if (graphe.checker(capteurs)) {
-        cout << "Solution réalisable trouvée avec " << capteurs.size() << " capteurs." << endl;
+        cout << "Solution réalisable trouvée avec " << capteurs.size() + graphe.doublons.size() << " capteurs." << endl;
     } else {
         cout << "Échec de la validation de la solution." << endl;
     }

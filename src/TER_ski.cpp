@@ -6,6 +6,7 @@
 
 TER_ski::TER_ski(string filename)
 {
+
   Graphe.resize(0);
   ifstream inf(filename);
   if (!inf)
@@ -14,7 +15,9 @@ TER_ski::TER_ski(string filename)
     size = -1;
     return;
   }
-  /*
+  fichier = filename.erase(0,5);
+
+  
   int numNodes, numEdges;
   inf >> numNodes >> numEdges;
   Graphe.resize(numNodes);
@@ -32,9 +35,9 @@ TER_ski::TER_ski(string filename)
       Graphe[node1][node2] = arc;
     }
   }
-  */
-  
-  
+  /*
+
+
   string temp = "a";
   int numNodes = -1;
   while (inf >> temp)
@@ -67,14 +70,13 @@ TER_ski::TER_ski(string filename)
       }
     }
   }
-    
-  
+    */
+
   size = numNodes;
   inf.close();
   triTopologique();
   restreindre_graphe_CM();
 }
-
 
 void TER_ski::restreindre_graphe_FF(const vector<vector<double>> &Xij) // Modifie GFord pour avoir son graphe restreint aux xij = 0; avec les sommets dédoublés
 {
@@ -173,8 +175,9 @@ void TER_ski::triTopologique()
   }
 }
 
-vector<pair<int, int>> TER_ski::Resolution(int version)
+vector<pair<int, int>> TER_ski::Resolution(int version, string filename)
 {
+  auto start = chrono::high_resolution_clock::now();
   vector<pair<int, int>> res;
 
   vector<vector<GRBVar>> x(size);
@@ -229,8 +232,9 @@ vector<pair<int, int>> TER_ski::Resolution(int version)
   cout << "--> Configuring the solver" << endl;
   model.set(GRB_DoubleParam_TimeLimit, 600.0); //< sets the time limit (in seconds)
   model.set(GRB_IntParam_Threads, 1);          //< limits the solver to single thread usage
-  if (version > 10){
-    vector<pair<int,int>> start = Init_Sol();
+  if (version > 10)
+  {
+    vector<pair<int, int>> start = Init_Sol();
     for (size_t i = 0; i < size; ++i)
     {
       for (size_t j = 0; j < size; ++j)
@@ -241,16 +245,18 @@ vector<pair<int, int>> TER_ski::Resolution(int version)
         }
       }
     }
-    for (auto &[i,j] : start){
+    for (auto &[i, j] : start)
+    {
       x[i][j].set(GRB_DoubleAttr_Start, 1.0);
     }
   }
-  
+
   // --- Solver launch ---
   cout << "--> Running the solver" << endl;
   model.optimize();
-  model.write("model.lp"); //< Writes the model in a file
+  // model.write("model.lp"); //< Writes the model in a file
 
+  auto end = chrono::high_resolution_clock::now();
   // --- Solver results retrieval ---
   cout << "--> Retrieving solver results " << endl;
 
@@ -283,6 +289,14 @@ vector<pair<int, int>> TER_ski::Resolution(int version)
     {
       cout << "On pose un capteur sur l'arc (" << i << ", " << j << "), doublon" << endl;
     }
+    double BP = model.get(GRB_DoubleAttr_ObjVal) + doublons.size();
+    double BD = model.get(GRB_DoubleAttr_ObjBound) + doublons.size();
+    double Gap = model.get(GRB_DoubleAttr_MIPGap);
+    int time = chrono::duration_cast<chrono::seconds>(end-start).count();
+
+    ofstream file(filename, ios::app);
+
+    file << fichier << ";" << version << ";" << BP << ";" << BD << ";" << Gap << ";" << time << endl;
   }
 
   else
@@ -300,34 +314,39 @@ vector<pair<int, int>> TER_ski::Resolution(int version)
   return res;
 }
 
-void TER_ski::Detection_Flot(){
+void TER_ski::Detection_Flot()
+{
 
-  vector<vector<double>> xij(size, vector<double> (size,0));
+  vector<vector<double>> xij(size, vector<double>(size, 0));
 
   restreindre_graphe_FF(xij);
 
-  for (int i=0; i<size-1; i++){
-    for (int j=i+1; j<size; j++){
+  for (int i = 0; i < size - 1; i++)
+  {
+    for (int j = i + 1; j < size; j++)
+    {
       int s = ordreTopologique[i] + size;
       int t = ordreTopologique[j];
       double flot = fordfulkerson(GFord, s, t, 1);
-      if (flot > 1.5){
-        F.emplace_back(s-size,t);
+      if (flot > 1.5)
+      {
+        F.emplace_back(s - size, t);
       }
       reset_graph(GFord);
     }
   }
 }
 
-vector<pair<int, int>> TER_ski::Resolution_compact()
+vector<pair<int, int>> TER_ski::Resolution_compact(int version, string filename)
 {
+  auto start = chrono::high_resolution_clock::now();
   cout << "Calcul ensemble I" << endl;
-  Detection_Flot();  // Déterminer l'ensemble F
+  Detection_Flot(); // Déterminer l'ensemble F
 
   cout << "Creating variables" << endl;
-  vector<vector<vector<GRBVar>>> pi(size, vector<vector<GRBVar>> (size, vector<GRBVar> (size)));
-  vector<vector<vector<vector<GRBVar>>>> gamma(size, vector<vector<vector<GRBVar>>> (size, vector<vector<GRBVar>> (size, vector<GRBVar> (size))));
-  vector<vector<GRBVar>> x(size, vector<GRBVar> (size));
+  vector<vector<vector<GRBVar>>> pi(size, vector<vector<GRBVar>>(size, vector<GRBVar>(size)));
+  vector<vector<vector<vector<GRBVar>>>> gamma(size, vector<vector<vector<GRBVar>>>(size, vector<vector<GRBVar>>(size, vector<GRBVar>(size))));
+  vector<vector<GRBVar>> x(size, vector<GRBVar>(size));
 
   vector<pair<int, int>> res; // vecteur à retourner
 
@@ -348,7 +367,7 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
   // x
   for (size_t i = 0; i < size; ++i)
   {
-    //x[i].resize(size);
+    // x[i].resize(size);
     for (size_t j = 0; j < size; ++j)
     {
       if (Graphe[i].contains(j))
@@ -365,14 +384,14 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
   {
     int s = F[f].first;
     int t = F[f].second;
-    
+
     for (int i = 0; i < size; ++i)
     {
       stringstream spi;
       spi << "pi(" << s << "," << t << "," << i << ")";
       pi[s][t][i] = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, spi.str());
 
-      for (auto &[j,arc] : Graphe[i])
+      for (auto &[j, arc] : Graphe[i])
       {
         if (i != t && j != s)
         {
@@ -401,18 +420,18 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
 
   // --- Contraintes ---
 
-  for (auto &[s,t] : F)
+  for (auto &[s, t] : F)
   {
     // s = F[f].first;
     // t = F[f].second;
     GRBLinExpr contrainte = 2 * pi[s][t][s] - 2 * pi[s][t][t];
     for (int i = 0; i < size; ++i)
     {
-      for (auto &[j,arc] : Graphe[i])
+      for (auto &[j, arc] : Graphe[i])
       {
         if (i != t && j != s)
         {
-          //int idx = i * size + j;
+          // int idx = i * size + j;
           contrainte -= gamma[s][t][i][j];
           model.addConstr(pi[s][t][i] - pi[s][t][j] - gamma[s][t][i][j] - x[i][j] <= 0);
         }
@@ -426,8 +445,9 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
   cout << "--> Configuring the solver" << endl;
   model.set(GRB_DoubleParam_TimeLimit, 600.0); //< sets the time limit (in seconds)
   model.set(GRB_IntParam_Threads, 1);          //< limits the solver to single thread usage
-  if (version < 1){
-    vector<pair<int,int>> start = Init_Sol();
+  if (version < 0)
+  {
+    vector<pair<int, int>> start = Init_Sol();
     for (size_t i = 0; i < size; ++i)
     {
       for (size_t j = 0; j < size; ++j)
@@ -438,15 +458,19 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
         }
       }
     }
-    for (auto &[i,j] : start){
+    for (auto &[i, j] : start)
+    {
       x[i][j].set(GRB_DoubleAttr_Start, 1.0);
     }
   }
-  
+
   // --- Solver launch ---
   cout << "--> Running the solver" << endl;
   model.optimize();
   // model.write("model.lp"); //< Writes the model in a file
+
+  auto end = chrono::high_resolution_clock::now();
+
 
   // --- Solver results retrieval ---
   cout << "--> Retrieving solver results " << endl;
@@ -480,6 +504,15 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
     {
       cout << "On pose un capteur sur l'arc (" << i << ", " << j << "), doublon" << endl;
     }
+
+    double BP = model.get(GRB_DoubleAttr_ObjVal) + doublons.size();
+    double BD = model.get(GRB_DoubleAttr_ObjBound) + doublons.size();
+    double Gap = model.get(GRB_DoubleAttr_MIPGap);
+    int time = chrono::duration_cast<chrono::seconds>(end-start).count();
+
+    ofstream file(filename, ios::app);
+
+    file << fichier << ";" << version << ";" << BP << ";" << BD << ";" << Gap << ";" << time << endl;
   }
 
   else
@@ -489,7 +522,6 @@ vector<pair<int, int>> TER_ski::Resolution_compact()
   }
   return res;
 }
-
 
 bool TER_ski::checker(vector<pair<int, int>> capteurs)
 {
@@ -518,7 +550,8 @@ bool TER_ski::checker(vector<pair<int, int>> capteurs)
   function<void(int, int, unordered_set<int> &, vector<int> &, vector<vector<int>> &)> find_paths;
   find_paths = [&](int current, int target, unordered_set<int> &visited, vector<int> &path, vector<vector<int>> &foundPaths)
   {
-    if (foundPaths.size() >= 2) return;
+    if (foundPaths.size() >= 2)
+      return;
 
     visited.insert(current);
     path.push_back(current);
@@ -565,7 +598,8 @@ bool TER_ski::checker(vector<pair<int, int>> capteurs)
           for (size_t i = 0; i < p.size(); ++i)
           {
             cout << p[i];
-            if (i < p.size() - 1) cout << " -> ";
+            if (i < p.size() - 1)
+              cout << " -> ";
           }
           cout << endl;
         }
@@ -577,173 +611,188 @@ bool TER_ski::checker(vector<pair<int, int>> capteurs)
   return true;
 }
 
-
 vector<pair<int, int>> TER_ski::find_solution_realisable()
 {
-    graph G = Graphe;
+  graph G = Graphe;
 
-    // arcs à retirer (capteurs)
-    vector<pair<int, int>> capteurs;
+  // arcs à retirer (capteurs)
+  vector<pair<int, int>> capteurs;
 
-    // Détection des sources et puits
-    vector<int> sources, sinks;
-    for (int i = 0; i < size; ++i)
+  // Détection des sources et puits
+  vector<int> sources, sinks;
+  for (int i = 0; i < size; ++i)
+  {
+    if (G[i].empty())
     {
-        if (G[i].empty())
-        {
-            sinks.push_back(i);
-        }
-        else
-        {
-            sources.push_back(i);
-        }
+      sinks.push_back(i);
     }
-
-    // Fonction récursive pour compter les chemins entre s et t (max 2)
-    function<int(int, int, unordered_set<int> &, vector<pair<int, int>> &)> count_paths;
-    count_paths = [&](int current, int target, unordered_set<int> &visited, vector<pair<int, int>> &path) -> int
+    else
     {
-        if (current == target)
-            return 1;
+      sources.push_back(i);
+    }
+  }
 
-        if (visited.count(current))
-            return 0;
+  // Fonction récursive pour compter les chemins entre s et t (max 2)
+  function<int(int, int, unordered_set<int> &, vector<pair<int, int>> &)> count_paths;
+  count_paths = [&](int current, int target, unordered_set<int> &visited, vector<pair<int, int>> &path) -> int
+  {
+    if (current == target)
+      return 1;
 
-        visited.insert(current);
-        int count = 0;
+    if (visited.count(current))
+      return 0;
 
-        for (const auto &neighbor : G[current])
-        {
-            if (visited.count(neighbor.first)) continue;
+    visited.insert(current);
+    int count = 0;
 
-            path.emplace_back(current, neighbor.first);
-            count += count_paths(neighbor.first, target, visited, path);
-            if (count >= 2)
-            {
-                visited.erase(current);
-                return count; // arrêt anticipé
-            }
-            path.pop_back(); // backtrack
-        }
+    for (const auto &neighbor : G[current])
+    {
+      if (visited.count(neighbor.first))
+        continue;
 
+      path.emplace_back(current, neighbor.first);
+      count += count_paths(neighbor.first, target, visited, path);
+      if (count >= 2)
+      {
         visited.erase(current);
-        return count;
-    };
-
-    // Boucle principale pour casser les multipaths
-    bool changed = true;
-    while (changed)
-    {
-        changed = false;
-
-        for (int s : sources)
-        {
-            for (int t : sinks)
-            {
-                if (s == t)
-                    continue;
-
-                unordered_set<int> visited;
-                vector<pair<int, int>> path;
-                int paths = count_paths(s, t, visited, path);
-                cout << "Nombre de chemins de " << s << " à " << t << " : " << paths << endl;
-
-                if (paths >= 2 && !path.empty())
-                {
-                    // Couper un arc du milieu du chemin
-                    pair<int, int> arc_to_cut = path[path.size() / 2];
-                    if (G[arc_to_cut.first].count(arc_to_cut.second))
-                    {
-                        cout << "Suppression de l'arc : " << arc_to_cut.first << " -> " << arc_to_cut.second << endl;
-                        G[arc_to_cut.first].erase(arc_to_cut.second);
-                        capteurs.push_back(arc_to_cut);
-                        changed = true;
-                        break;
-                    }
-                }
-            }
-            if (changed)
-                break;
-        }
+        return count; // arrêt anticipé
+      }
+      path.pop_back(); // backtrack
     }
 
-    return capteurs;
+    visited.erase(current);
+    return count;
+  };
+
+  // Boucle principale pour casser les multipaths
+  bool changed = true;
+  while (changed)
+  {
+    changed = false;
+
+    for (int s : sources)
+    {
+      for (int t : sinks)
+      {
+        if (s == t)
+          continue;
+
+        unordered_set<int> visited;
+        vector<pair<int, int>> path;
+        int paths = count_paths(s, t, visited, path);
+        cout << "Nombre de chemins de " << s << " à " << t << " : " << paths << endl;
+
+        if (paths >= 2 && !path.empty())
+        {
+          // Couper un arc du milieu du chemin
+          pair<int, int> arc_to_cut = path[path.size() / 2];
+          if (G[arc_to_cut.first].count(arc_to_cut.second))
+          {
+            cout << "Suppression de l'arc : " << arc_to_cut.first << " -> " << arc_to_cut.second << endl;
+            G[arc_to_cut.first].erase(arc_to_cut.second);
+            capteurs.push_back(arc_to_cut);
+            changed = true;
+            break;
+          }
+        }
+      }
+      if (changed)
+        break;
+    }
+  }
+
+  return capteurs;
 }
 
-vector<int> TER_ski::trouverSources() {
-        int n = Graphe.size();
-        vector<int> inDegree(n, 0);
-    
-        for (int u = 0; u < n; ++u) {
-            for (const auto& [v, arc] : Graphe[u]) {
-                inDegree[v]++;
-            }
-        }
-    
-        vector<int> sources;
-        for (int i = 0; i < n; ++i) {
-            if (inDegree[i] == 0) {
-                sources.push_back(i);
-            }
-        }
-        return sources;
+vector<int> TER_ski::trouverSources()
+{
+  int n = Graphe.size();
+  vector<int> inDegree(n, 0);
+
+  for (int u = 0; u < n; ++u)
+  {
+    for (const auto &[v, arc] : Graphe[u])
+    {
+      inDegree[v]++;
+    }
+  }
+
+  vector<int> sources;
+  for (int i = 0; i < n; ++i)
+  {
+    if (inDegree[i] == 0)
+    {
+      sources.push_back(i);
+    }
+  }
+  return sources;
+}
+
+void TER_ski::dfs(int u, graph &G, vector<bool> &vu, arcs_supprimes &ignores, vector<pair<int, int>> &Capteurs, int source)
+{
+  vu[u] = true;
+  cout << "Visite de " << u << " depuis source " << source << endl;
+
+  for (auto it = G[u].begin(); it != G[u].end();)
+  {
+    int v = it->first;
+    // Si l'ar a déjà été ignoré, on passe au suivant
+    if (ignores[u].count(v))
+    {
+      ++it;
+      continue;
     }
 
-    void TER_ski::dfs(int u, graph &G, vector<bool>& vu, arcs_supprimes& ignores, vector<pair<int,int>>&Capteurs, int source) {
-        vu[u] = true;
-        cout << "Visite de " << u << " depuis source " << source << endl;
-    
-        for (auto it = G[u].begin(); it != G[u].end();){
-            int v = it->first;
-            // Si l'ar a déjà été ignoré, on passe au suivant
-            if (ignores[u].count(v)){
-                ++it;
-                continue;
-            }
-
-            if (vu[v]){
-                // On a déjà visité le sommet, on supprime l'arc et on ajoute un capteur
-                ignores[u].insert(v);
-                Capteurs.push_back({u,v});
-                it = G[u].erase(it);
-            } else {
-                dfs(v, G, vu, ignores, Capteurs, source);
-                ++it;
-            }
-        }
+    if (vu[v])
+    {
+      // On a déjà visité le sommet, on supprime l'arc et on ajoute un capteur
+      ignores[u].insert(v);
+      Capteurs.push_back({u, v});
+      it = G[u].erase(it);
     }
-
-    vector<pair<int,int>> TER_ski::Init_Sol() {
-        // Copie du graphe une seule fois au début
-        graph G = Graphe;
-        vector<pair<int,int>> Capteurs;  // Liste des arêtes supprimées
-    
-        vector<int> sources = trouverSources();
-    
-        cout << "Sources détectées : ";
-        for (int s : sources) cout << s << " ";
-        cout << "\n\n";
-
-        for (int source : sources) {
-            vector<bool> vu(G.size(), false);
-            unordered_map<int, unordered_set<int>> ignores;
-    
-            // Utilise la même copie modifiée du graphe pour toutes les sources
-            dfs(source, G, vu, ignores, Capteurs, source);
-    
-            cout << "--- Arêtes supprimées depuis la source " << source << " ---\n";
-            for (auto& [u, v] : Capteurs) {
-                cout << u << " -> " << v << "\n";
-            }
-            cout << "------------------------------\n";
-        }
-
-        cout << "--- Capteurs placés --- " << endl;;
-        for (auto& [u, v] : Capteurs) {
-            cout << u << " -> " << v << "\n";
-        }
-        cout << "------------------------------" << endl;
-
-        return Capteurs;  // Retourner le vecteur des arêtes supprimées
+    else
+    {
+      dfs(v, G, vu, ignores, Capteurs, source);
+      ++it;
     }
+  }
+}
 
+vector<pair<int, int>> TER_ski::Init_Sol(){
+  // Copie du graphe une seule fois au début
+  graph G = Graphe;
+  vector<pair<int, int>> Capteurs; // Liste des arêtes supprimées
+
+  vector<int> sources = trouverSources();
+
+  cout << "Sources détectées : ";
+  for (int s : sources)
+    cout << s << " ";
+  cout << "\n\n";
+
+  for (int source : sources)
+  {
+    vector<bool> vu(G.size(), false);
+    unordered_map<int, unordered_set<int>> ignores;
+
+    // Utilise la même copie modifiée du graphe pour toutes les sources
+    dfs(source, G, vu, ignores, Capteurs, source);
+
+    cout << "--- Arêtes supprimées depuis la source " << source << " ---\n";
+    for (auto &[u, v] : Capteurs)
+    {
+      cout << u << " -> " << v << "\n";
+    }
+    cout << "------------------------------\n";
+  }
+
+  cout << "--- Capteurs placés --- " << endl;
+  ;
+  for (auto &[u, v] : Capteurs)
+  {
+    cout << u << " -> " << v << "\n";
+  }
+  cout << "------------------------------" << endl;
+
+  return Capteurs; // Retourner le vecteur des arêtes supprimées
+}

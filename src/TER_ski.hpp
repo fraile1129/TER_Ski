@@ -1,6 +1,6 @@
 #pragma once
 
-//#include <fstream>
+#include <fstream>
 //#include <vector>
 //#include <string>
 #include <unordered_map>
@@ -9,6 +9,7 @@
 #include <sstream>
 #include "gurobi_c++.h" 
 #include <functional>
+#include <chrono>
 
 #include "PCC_successifs.hpp"
 
@@ -17,6 +18,7 @@ typedef unordered_map<int, unordered_set<int>> arcs_supprimes;
 class TER_ski
 {
 public:
+    string fichier;
     int size;
     graph Graphe;
     vector<pair<int, int>> doublons;
@@ -35,11 +37,11 @@ public:
     // Modifie GPCC 
     void restreindre_graphe_CM();
 
-    vector<pair<int,int>> Resolution(int version);
+    vector<pair<int,int>> Resolution(int version, string filename);
 
     void Detection_Flot();
 
-    vector<pair<int,int>> Resolution_compact(int version);
+    vector<pair<int,int>> Resolution_compact(int version, string filename);
 
     bool checker(vector<pair<int,int>> capteurs);
 
