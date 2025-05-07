@@ -12,16 +12,13 @@ chmod +x run_solver.sh
 
 Puis lance le solveur avec le modèle souhaité :
 
-Modèle compact : 
+## Modèle compact : 
 
 0 sans la solution initiale
 
 -1 avec la solution initiale
-```bash
-./run_solver.sh
-```
 
-Modèle normal :
+## Modèle normal :
 
 2 sans la solution initiale
 
