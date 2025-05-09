@@ -178,11 +178,12 @@ bologne-C1-BPPC_5_0_2.txt_0.9;0;1620;0;1;617
 bologne-R1-BPPC_5_0_2.txt_0.9;0;1620;0;1;626
 bologne-C1-BPPC_5_0_2.txt_0.9;11;1561;222;0.857783;600
 bologne-R1-BPPC_5_0_2.txt_0.9;11;1364;152;0.888563;600
-
 bologne-C1-BPPC_5_0_3.txt_0.9;-1;1561;0;1;616
+bologne-R1-BPPC_5_0_3.txt_0.9;-1;1561;0;1;617
 bologne-C1-BPPC_5_0_3.txt_0.9;0;1620;0;1;617
+bologne-R1-BPPC_5_0_3.txt_0.9;0;1620;0;1;617
 bologne-C1-BPPC_5_0_3.txt_0.9;11;1307;92;0.92961;600
-
+bologne-R1-BPPC_5_0_3.txt_0.9;11;1405;106;0.924555;600
 bologne-C1-BPPC_1_0_1.txt_0.1;-1;508;0;1;630
 bologne-C1-BPPC_1_0_1.txt_0.1;0;720;0;1;630
 bologne-C1-BPPC_1_0_1.txt_0.1;2;261;228;0.126437;600
